@@ -34,47 +34,87 @@ const sc_core::sc_event& InstructionBase::finishedPhaseEvent() const {
 }
 
 // The default for all phases is to do nothing. Receiving a callback should
-// therefore be an error.
+// therefore be an error. The core may be waiting for `finishedPhaseEvent()`, so
+// need to make a point of starting and immediately finishing each phase.
 
-void InstructionBase::readRegisters() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::readRegisters() {
+  startingPhase(INST_REG_READ);
+  finishedPhase(INST_REG_READ);
+}
 void InstructionBase::readRegistersCallback(RegisterPort port, int32_t value) {
   assert(false);
 }
 
-void InstructionBase::writeRegisters() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::writeRegisters() {
+  startingPhase(INST_REG_WRITE);
+  finishedPhase(INST_REG_WRITE);
+}
 void InstructionBase::writeRegistersCallback() {assert(false);}
 
-void InstructionBase::earlyCompute() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::earlyCompute() {
+  startingPhase(INST_COMPUTE);
+  finishedPhase(INST_COMPUTE);
+}
 void InstructionBase::earlyComputeCallback(int32_t value) {assert(false);}
 
-void InstructionBase::compute() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::compute() {
+  startingPhase(INST_COMPUTE);
+  finishedPhase(INST_COMPUTE);
+}
 void InstructionBase::computeCallback(int32_t value) {assert(false);}
 
-void InstructionBase::readCMT() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::readCMT() {
+  startingPhase(INST_CMT_READ);
+  finishedPhase(INST_CMT_READ);
+}
 void InstructionBase::readCMTCallback(EncodedCMTEntry value) {assert(false);}
 
-void InstructionBase::writeCMT() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::writeCMT() {
+  startingPhase(INST_CMT_WRITE);
+  finishedPhase(INST_CMT_WRITE);
+}
 void InstructionBase::writeCMTCallback() {assert(false);}
 
-void InstructionBase::readScratchpad() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::readScratchpad() {
+  startingPhase(INST_SPAD_READ);
+  finishedPhase(INST_SPAD_READ);
+}
 void InstructionBase::readScratchpadCallback(int32_t value) {assert(false);}
 
-void InstructionBase::writeScratchpad() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::writeScratchpad() {
+  startingPhase(INST_SPAD_WRITE);
+  finishedPhase(INST_SPAD_WRITE);
+}
 void InstructionBase::writeScratchpadCallback() {assert(false);}
 
-void InstructionBase::readCregs() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::readCregs() {
+  startingPhase(INST_CREG_READ);
+  finishedPhase(INST_CREG_READ);
+}
 void InstructionBase::readCregsCallback(int32_t value) {assert(false);}
 
-void InstructionBase::writeCregs() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::writeCregs() {
+  startingPhase(INST_CREG_WRITE);
+  finishedPhase(INST_CREG_WRITE);
+}
 void InstructionBase::writeCregsCallback() {assert(false);}
 
-void InstructionBase::readPredicate() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::readPredicate() {
+  startingPhase(INST_PRED_READ);
+  finishedPhase(INST_PRED_READ);
+}
 void InstructionBase::readPredicateCallback(bool value) {assert(false);}
 
-void InstructionBase::writePredicate() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::writePredicate() {
+  startingPhase(INST_PRED_WRITE);
+  finishedPhase(INST_PRED_WRITE);
+}
 void InstructionBase::writePredicateCallback() {assert(false);}
 
-void InstructionBase::sendNetworkData() {finished.notify(sc_core::SC_ZERO_TIME);}
+void InstructionBase::sendNetworkData() {
+  startingPhase(INST_NETWORK_SEND);
+  finishedPhase(INST_NETWORK_SEND);
+}
 void InstructionBase::sendNetworkDataCallback() {assert(false);}
 
 int32_t InstructionBase::signExtend(int32_t value, size_t bits) const {
@@ -82,4 +122,24 @@ int32_t InstructionBase::signExtend(int32_t value, size_t bits) const {
     return (value << (32 - bits)) >> (32 - bits);
   else
     return value;
+}
+
+bool InstructionBase::busy() const {
+  return phasesInProgress.any();
+}
+
+void InstructionBase::startingPhase(ExecutionPhase phase) {
+  assert(phasesInProgress[phase] == false);
+  phasesInProgress[phase] = true;
+}
+
+void InstructionBase::finishedPhase(ExecutionPhase phase) {
+  assert(phasesInProgress[phase] == true);
+  phasesInProgress[phase] = false;
+
+  finished.notify(sc_core::SC_ZERO_TIME);
+}
+
+bool InstructionBase::phaseInProgress(ExecutionPhase phase) {
+  return phasesInProgress.test(phase);
 }

@@ -18,8 +18,12 @@ class NoOp : public Has1Operand<HasResult<T>> {
 public:
   NoOp(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->result = this->operand1;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->core->computeLatency(this->opcode);
+  }
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
@@ -31,8 +35,12 @@ public:
     // Nothing
   }
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->result = this->operand1 & 0xFFFF;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->core->computeLatency(this->opcode);
+  }
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
@@ -45,8 +53,12 @@ public:
     // Nothing
   }
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->result = this->operand1 | (this->operand2 << 16);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->core->computeLatency(this->opcode);
+  }
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
@@ -56,12 +68,20 @@ class GetChannelMap : public Has1Operand<HasResult<T>> {
 public:
   GetChannelMap(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
   void compute() {
-    // TODO: make sure computeCallback is used, not readCMTCallback.
+    this->startingPhase(this->INST_COMPUTE);
     this->core->readCMT(this->operand1);
   }
   void computeCallback(int32_t value) {
     this->result = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_COMPUTE);
+  }
+  void readCMTCallback(EncodedCMTEntry value) {
+    // This instruction can potentially read the channel map table in multiple
+    // phases of execution.
+    if (this->phaseInProgress(this->INST_CMT_READ))
+      T::readCMTCallback(value);
+    else
+      computeCallback(value);
   }
 };
 
@@ -73,19 +93,21 @@ public:
   IndirectRead(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     // Slight hack: use port 1 for the original request, and port 2 for the
-    // indirect request.
+    // indirect request. In practice, any registers capable of indirecting
+    // would probably have a special fast interface.
     switch (port) {
       case REGISTER_PORT_1:
         this->core->readRegister(value, REGISTER_PORT_2);
         break;
       case REGISTER_PORT_2:
         this->result = value;
-        this->finished.notify(sc_core::SC_ZERO_TIME);
+        this->finishedPhase(this->INST_REG_READ);
         break;
     }
   }
@@ -100,6 +122,7 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
     this->core->readRegister(this->reg2, REGISTER_PORT_2);
   }
@@ -114,7 +137,7 @@ public:
     operandsReceived++;
 
     if (operandsReceived == 2)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -129,8 +152,11 @@ public:
   SystemCall(Instruction encoded) : Has1Operand<T>(encoded) {}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->core->syscall(this->operand1);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+  }
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
@@ -141,9 +167,10 @@ public:
   RemoteExecute(Instruction encoded) : T(encoded) {}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     ChannelID address = this->core->getNetworkDestination(this->channelMapping);
     this->core->startRemoteExecution(address);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
@@ -166,7 +193,9 @@ public:
   RemoteNextIPK(Instruction encoded) : HasResult<T>(encoded) {result = 0;}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     result = Instruction("nxipk").toInt();
+    this->finishedPhase(this->INST_COMPUTE);
   }
 
 protected:

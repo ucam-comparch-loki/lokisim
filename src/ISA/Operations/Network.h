@@ -25,14 +25,18 @@ public:
   WaitOnChannelEnd(Instruction encoded) : Has1Operand<T>(encoded) {}
 
   void compute() {
-    if (this->core->creditsAvailable(this->outChannel) >= this->operand1)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
-
-    // TODO: else wait for this->core->creditArrivedEvent(this->outChannel)
+    this->startingPhase(this->INST_COMPUTE);
+    checkIfFinished();
   }
   void computeCallback(int32_t unused) {
     // A credit has arrived - see if we have finished yet.
-    compute();
+    checkIfFinished();
+  }
+  void checkIfFinished() {
+    if (this->core->creditsAvailable(this->outChannel) >= (uint)this->operand1)
+      this->finishedPhase(this->INST_COMPUTE);
+    else
+      this->core->waitForCredit(this->outChannel);
   }
 };
 
@@ -43,8 +47,9 @@ public:
   TestChannel(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->result = this->core->inputFIFOHasData(this->operand1);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_COMPUTE);
   }
   bool computePredicate() {
     return this->result;
@@ -60,11 +65,12 @@ public:
   SelectChannel(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->core->selectChannelWithData(this->operand1);
   }
   void computeCallback(int32_t bufferIndex) {
     this->result = bufferIndex;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 

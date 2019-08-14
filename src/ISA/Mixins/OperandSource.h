@@ -72,11 +72,12 @@ public:
   WriteRegister(Instruction encoded) : T(encoded) {}
 
   void writeRegisters() {
+    this->startingPhase(this->INST_REG_WRITE);
     this->core->writeRegister(this->destinationRegister, this->result);
   }
 
   void writeRegistersCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_WRITE);
   }
 };
 
@@ -89,13 +90,14 @@ public:
   NoDest1Src(Instruction encoded) : T(encoded) {}
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 };
 
@@ -111,13 +113,14 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -139,13 +142,14 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -165,6 +169,7 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
     this->core->readRegister(this->reg2, REGISTER_PORT_2);
   }
@@ -179,7 +184,7 @@ public:
     operandsReceived++;
 
     if (operandsReceived == 2)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -199,6 +204,7 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
     this->core->readRegister(this->reg3, REGISTER_PORT_2);
   }
@@ -213,7 +219,7 @@ public:
     operandsReceived++;
 
     if (operandsReceived == 2)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -260,13 +266,14 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 };
 
@@ -283,13 +290,14 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -311,13 +319,14 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:
@@ -338,6 +347,7 @@ public:
   }
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
     this->core->readRegister(this->reg2, REGISTER_PORT_2);
   }
@@ -352,7 +362,7 @@ public:
     operandsReceived++;
 
     if (operandsReceived == 2)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_REG_READ);
   }
 
 protected:

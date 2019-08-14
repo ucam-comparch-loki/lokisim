@@ -19,6 +19,7 @@
 
 #include "InstructionInterface.h"
 #include "../Datatype/Instruction.h"
+#include <bitset>
 
 class InstructionBase {
 protected:
@@ -33,6 +34,10 @@ public:
   // Event triggered whenever a phase of computation completes. At most one
   // phase may be in progress at a time.
   const sc_core::sc_event& finishedPhaseEvent() const;
+
+  // Returns whether the instruction is blocked on some operation. An
+  // instruction may only be passed down the pipeline if it is not busy.
+  bool busy() const;
 
   // Read registers, including register-mapped input FIFOs.
   void readRegisters();
@@ -91,6 +96,30 @@ protected:
   // If this instruction takes a signed immediate, extend the lowest `bits`
   // bits of `value` into a full 32 bit signed integer. Otherwise return value.
   int32_t signExtend(int32_t value, size_t bits) const;
+
+  enum ExecutionPhase {
+    INST_FETCH,
+    INST_DECODE,
+    INST_REG_READ,
+    INST_REG_WRITE,
+    INST_CMT_READ,
+    INST_CMT_WRITE,
+    INST_PRED_READ,
+    INST_PRED_WRITE,
+    INST_SPAD_READ,
+    INST_SPAD_WRITE,
+    INST_CREG_READ,
+    INST_CREG_WRITE,
+    INST_COMPUTE,
+    INST_NETWORK_SEND,
+
+    NUM_PHASES
+  };
+
+  void startingPhase(ExecutionPhase phase);
+  void finishedPhase(ExecutionPhase phase);
+  bool phaseInProgress(ExecutionPhase phase);
+  std::bitset<NUM_PHASES> phasesInProgress;
 
   // The original instruction.
   const Instruction encoded;

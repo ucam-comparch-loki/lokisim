@@ -23,8 +23,10 @@ public:
   NetworkSend(Instruction encoded) : T(encoded) {}
 
   void sendNetworkData() {
+    this->startingPhase(this->INST_NETWORK_SEND);
+
     if (this->outChannel == NO_CHANNEL)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_NETWORK_SEND);
     else {
       int32_t payload = this->result;
       ChannelID destination =
@@ -55,7 +57,7 @@ public:
     }
   }
   void sendNetworkDataCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_NETWORK_SEND);
   }
 };
 
@@ -68,6 +70,8 @@ public:
   SendConfig(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void sendNetworkData() {
+    this->startingPhase(this->INST_NETWORK_SEND);
+
     int32_t payload = this->operand1;
     uint32_t metadata = this->operand2;
     ChannelID destination =
@@ -78,7 +82,7 @@ public:
   }
 
   void sendNetworkDataCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_NETWORK_SEND);
   }
 };
 
@@ -92,6 +96,7 @@ public:
 
   void sendNetworkData() {
     assert(this->totalFlits > 0);
+    this->startingPhase(this->INST_NETWORK_SEND);
 
     int32_t payload = this->getPayload(flitsSent);
     MemoryOpcode op = this->getMemoryOp(flitsSent);
@@ -111,7 +116,7 @@ public:
   void sendNetworkDataCallback() {
     flitsSent++;
     if (flitsSent == this->totalFlits)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_NETWORK_SEND);
   }
 
 protected:

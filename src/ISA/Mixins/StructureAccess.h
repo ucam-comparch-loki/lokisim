@@ -26,12 +26,13 @@ public:
   ReadPredicate(Instruction encoded) : T(encoded) {predicateBit = false;}
 
   void readPredicate() {
+    this->startingPhase(this->INST_PRED_READ);
     this->core->readPredicate();
   }
 
   void readPredicateCallback(bool value) {
     predicateBit = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_PRED_READ);
   }
 
 protected:
@@ -56,11 +57,12 @@ public:
   }
 
   void writePredicate() {
+    this->startingPhase(this->INST_PRED_WRITE);
     this->core->writePredicate(newPredicate);
   }
 
   void writePredicateCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_PRED_WRITE);
   }
 
 protected:
@@ -74,15 +76,17 @@ public:
   ReadCMT(Instruction encoded) : T(encoded) {channelMapping = 0;}
 
   void readCMT() {
+    this->startingPhase(this->INST_CMT_READ);
+
     if (this->outChannel == NO_CHANNEL)
-      this->finished.notify(sc_core::SC_ZERO_TIME);
+      this->finishedPhase(this->INST_CMT_READ);
     else
       this->core->readCMT(this->outChannel);
   }
 
   void readCMTCallback(EncodedCMTEntry value) {
     channelMapping = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_CMT_READ);
   }
 
 protected:
@@ -95,13 +99,14 @@ public:
   WriteCMT(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeCMT() {
+    this->startingPhase(this->INST_CMT_WRITE);
     RegisterIndex entry = this->operand2;
     EncodedCMTEntry value = this->operand1;
     this->core->writeCMT(entry, value);
   }
 
   void writeCMTCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_CMT_WRITE);
   }
 };
 
@@ -112,12 +117,13 @@ public:
   ReadCregs(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readCregs() {
+    this->startingPhase(this->INST_CREG_READ);
     this->core->readCreg(this->operand1);
   }
 
   void readCregsCallback(int32_t value) {
     this->result = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_CREG_READ);
   }
 };
 
@@ -127,13 +133,14 @@ public:
   WriteCregs(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeCregs() {
+    this->startingPhase(this->INST_CREG_WRITE);
     RegisterIndex entry = this->operand2;
     int32_t value = this->operand1;
     this->core->writeCreg(entry, value);
   }
 
   void writeCregsCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_CREG_WRITE);
   }
 };
 
@@ -144,12 +151,13 @@ public:
   ReadScratchpad(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void readScratchpad() {
+    this->startingPhase(this->INST_SPAD_READ);
     this->core->readScratchpad(this->operand1);
   }
 
   void readScratchpadCallback(int32_t value) {
     this->result = value;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_SPAD_READ);
   }
 };
 
@@ -159,13 +167,14 @@ public:
   WriteScratchpad(Instruction encoded) : Has2Operands<T>(encoded) {}
 
   void writeScratchpad() {
+    this->startingPhase(this->INST_SPAD_WRITE);
     RegisterIndex entry = this->operand2;
     int32_t value = this->operand1;
     this->core->writeScratchpad(entry, value);
   }
 
   void writeScratchpadCallback() {
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_SPAD_WRITE);
   }
 };
 

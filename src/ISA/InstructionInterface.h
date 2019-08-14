@@ -35,9 +35,12 @@ public:
   virtual void assignToCore(CoreInterface& core, MemoryAddr address,
                             InstructionSource source) = 0;
 
-  // Event triggered whenever a phase of computation completes. At most one
-  // phase may be in progress at a time.
+  // Event triggered whenever a phase of computation completes.
   virtual const sc_core::sc_event& finishedPhaseEvent() const = 0;
+
+  // Returns whether the instruction is blocked on some operation. An
+  // instruction may only be passed down the pipeline if it is not busy.
+  virtual bool busy() const = 0;
 
   // Read registers, including register-mapped input FIFOs.
   virtual void readRegisters() = 0;

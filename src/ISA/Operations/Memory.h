@@ -61,8 +61,14 @@ protected:
   }
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->address = this->operand1 + this->operand2;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+
+    this->core->computeLatency(OP_ADDU);
+  }
+
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 
   int32_t getPayload(uint flitNumber) const {
@@ -81,8 +87,14 @@ protected:
   }
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->address = this->operand2 + this->operand3;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+
+    this->core->computeLatency(OP_ADDU);
+  }
+
+  void computeCallback(int32_t unused) {
+    this->finishedPhase(this->INST_COMPUTE);
   }
 
   int32_t getPayload(uint flitNumber) const {

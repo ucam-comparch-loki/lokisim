@@ -24,27 +24,26 @@ public:
   }
 
   void readCMT() {
+    this->startingPhase(this->INST_CMT_READ);
     this->core->readCMT(0);
   }
 
   void readCMTCallback(EncodedCMTEntry value) {
     fetchChannel = ChannelMapEntry::MemoryChannel(value);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_CMT_READ);
   }
 
   void compute() {
     T::compute();
 
     this->core->fetch(this->result, fetchChannel, true, false);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
   ChannelMapEntry::MemoryChannel fetchChannel;
 };
 
-// Compute an address relative to the address of the current instruction packet.
-// This mix-in must wrap `InstructionFetch`. // TODO fix circular dependency
+// Add the address of the current instruction packet to an existing computation.
 // The operation wrapped must not already read registers.
 template<class T>
 class Relative : public T {
@@ -52,6 +51,7 @@ public:
   Relative(Instruction encoded) : T(encoded) {currentIPK = -1;}
 
   void readRegisters() {
+    this->startingPhase(this->INST_REG_READ);
     // Hard-coded use of port 1 is why the base instruction can't read
     // registers. Add another "fake" port to address this.
     this->core->readRegister(1, REGISTER_PORT_1);
@@ -60,13 +60,13 @@ public:
   void readRegistersCallback(RegisterPort port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     currentIPK = value;
+    this->finishedPhase(this->INST_REG_READ);
   }
 
   void compute() {
     T::compute();
 
     this->result += currentIPK;
-    this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 
 protected:
@@ -83,7 +83,6 @@ public:
     T::compute();
 
     this->core->fetch(this->result, this->fetchChannel, true, true);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
 
@@ -98,7 +97,6 @@ public:
     T::compute();
 
     this->core->fetch(this->result, this->fetchChannel, false, false);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
   }
 };
 
@@ -111,8 +109,9 @@ public:
   InBufferJump(Instruction encoded) : Has1Operand<T>(encoded) {}
 
   void compute() {
+    this->startingPhase(this->INST_COMPUTE);
     this->core->jump(this->operand1);
-    this->finished.notify(sc_core::SC_ZERO_TIME);
+    this->finishedPhase(this->INST_COMPUTE);
   }
 };
 
