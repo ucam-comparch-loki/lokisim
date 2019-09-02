@@ -348,8 +348,8 @@ void initialiseParameters() {
   deprecated["MEMORY_BUFFER_SIZE"] = "memory-bank-input-fifo-size";
   deprecated["ROUTER_BUFFER_SIZE"] = "router-fifo-size";
   deprecated["MAGIC_MEMORY"] = "magic-memory";
-  deprecated["ACCELERATOR_WIDTH"] = "accelerator-pe-rows";
-  deprecated["ACCELERATOR_HEIGHT"] = "accelerator-pe-columns";
+  deprecated["ACCELERATOR_WIDTH"] = "accelerator-pe-columns";
+  deprecated["ACCELERATOR_HEIGHT"] = "accelerator-pe-rows";
   deprecated["ACCELERATOR_BCAST_ROWS"] = "accelerator-broadcast-rows";
   deprecated["ACCELERATOR_BCAST_COLS"] = "accelerator-broadcast-columns";
   deprecated["ACCELERATOR_ACC_ROWS"] = "accelerator-accumulate-rows";
