@@ -95,7 +95,7 @@ public:
 
   // Wait for a credit to arrive at the given output channel.
   // Call the current instruction's `computeCallback()` when a credit arrives.
-  virtual void waitForCredit(ChannelIndex channel) const = 0;
+  virtual void waitForCredit(ChannelIndex channel) = 0;
 
   // Send a flit onto the network.
   // Call the instruction's `sendNetworkDataCallback()` when the flit has safely

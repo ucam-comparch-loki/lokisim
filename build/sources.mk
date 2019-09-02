@@ -38,6 +38,7 @@ src/Tile/Core/Decode \
 src/Tile/Core/Execute \
 src/Tile/Core/Fetch \
 src/Tile/Core/Write \
+src/Tile/Core2 \
 src/Tile/Memory \
 src/Tile/Network \
 src/Utility \

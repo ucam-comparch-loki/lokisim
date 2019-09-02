@@ -14,6 +14,7 @@ RM := rm
 -include src/Utility/subdir.mk
 -include src/Tile/Network/subdir.mk
 -include src/Tile/Memory/subdir.mk
+-include src/Tile/Core2/subdir.mk
 -include src/Tile/Core/Write/subdir.mk
 -include src/Tile/Core/Fetch/subdir.mk
 -include src/Tile/Core/Execute/subdir.mk
@@ -74,6 +75,5 @@ clean:
 	-@echo ' '
 
 .PHONY: all clean dependents
-.SECONDARY:
 
 -include ../makefile.targets

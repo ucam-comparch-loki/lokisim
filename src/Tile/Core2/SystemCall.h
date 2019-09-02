@@ -1,0 +1,70 @@
+/*
+ * SystemCall.h
+ *
+ *  Created on: Aug 19, 2019
+ *      Author: db434
+ */
+
+#ifndef SRC_TILE_CORE_SYSTEMCALL_H_
+#define SRC_TILE_CORE_SYSTEMCALL_H_
+
+#include "../../LokiComponent.h"
+#include "../../Memory/MemoryTypes.h"
+
+namespace Compute {
+
+class Core;
+
+class SystemCall: public LokiComponent {
+public:
+
+  // This is borrowed from libloki. Should we arrange to have a single shared
+  // header for all tools/libraries?
+  enum Code {
+    SYS_EXIT            = 0x01,   // Terminate the program
+    SYS_OPEN            = 0x02,   // Open a file
+    SYS_CLOSE           = 0x03,   // Close a file
+    SYS_READ            = 0x04,   // Read from a file
+    SYS_WRITE           = 0x05,   // Write to a file
+    SYS_SEEK            = 0x06,   // Seek within a file
+
+    SYS_TILE_ID         = 0x10,   // (deprecated) Unique ID of this tile. Use \ref get_tile_id instead.
+    SYS_POSITION        = 0x11,   // (deprecated) Position within this tile. Use \ref get_core_id instead.
+
+    // 0x20 to 0x40 are lokisim specific.
+    SYS_ENERGY_LOG_ON   = 0x20,   // Start recording energy-consuming events
+    SYS_ENERGY_LOG_OFF  = 0x21,   // Stop recording energy-consuming events
+    SYS_DEBUG_ON        = 0x22,   // Print lots of information to stdout
+    SYS_DEBUG_OFF       = 0x23,   // Stop printing debug information
+    SYS_INST_TRACE_ON   = 0x24,   // Print address of every instruction executed
+    SYS_INST_TRACE_OFF  = 0x25,   // Stop printing instruction addresses
+    SYS_SNAPSHOT        = 0x26,   // Print register file contents
+    SYS_CLEAR_STATS     = 0x27,   // Reset any statistics collected so far
+    SYS_START_STATS     = 0x28,   // Start collecting statistics
+    SYS_FREEZE_STATS    = 0x29,   // Stop collecting statistics, but don't delete them
+
+    SYS_CURRENT_CYCLE   = 0x30    // (deprecated) Get the current cycle number
+  };
+
+  SystemCall(sc_module_name name);
+
+  void call(Code code);
+
+private:
+  // Convert between newlib flag constants and Linux ones.
+  uint convertTargetFlags(uint targetFlags) const;
+
+  Core& core() const;
+
+  ComponentID id() const;
+
+  int32_t readRegister(RegisterIndex reg) const;
+  int32_t readByte(MemoryAddr addr) const;
+
+  void writeRegister(RegisterIndex reg, int32_t data) const;
+  void writeByte(MemoryAddr addr, int32_t data) const;
+};
+
+} /* namespace Compute */
+
+#endif /* SRC_TILE_CORE_SYSTEMCALL_H_ */

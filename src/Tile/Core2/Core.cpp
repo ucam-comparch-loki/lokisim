@@ -1,0 +1,172 @@
+/*
+ * Core.cpp
+ *
+ *  Created on: Aug 16, 2019
+ *      Author: db434
+ */
+
+#include "Core.h"
+#include "../ComputeTile.h"
+#include "../../Utility/Assert.h"
+
+namespace Compute {
+
+Core::Core(const sc_module_name& name, const ComponentID& ID,
+           const core_parameters_t& params, size_t numMulticastInputs,
+           size_t numMulticastOutputs, size_t numMemories) :
+    LokiComponent(name),
+    clock("clock"),
+    iData("iData", params.numInputChannels),
+    oMemory("oMemory"),
+    oMulticast("oMulticast"),
+    iCredit("iCredit"),
+    id(ID),
+    registers("regs", params.registerFile),
+    scratchpad("scratchpad", params.scratchpad),
+    channelMapTable("cmt", params.channelMapTable),
+    controlRegisters("cregs"),
+    predicate("predicate"),
+    iInstFIFO("ipk_fifo", params.ipkFIFO),
+    iInstCache("ipk_cache", params.cache),
+    iDataFIFOs("iBuffers", params.numInputChannels - 2, params.inputFIFO),
+    iCreditFIFO("credits", 1),  // More of a register than a FIFO
+    oDataFIFOs("oBuffers", params.outputFIFO),
+    magicMemoryConnection("magic_memory"),
+    systemCallHandler("syscall") {
+
+  registers.clock(clock);
+  scratchpad.clock(clock);
+  channelMapTable.clock(clock);
+  controlRegisters.clock(clock);
+  predicate.clock(clock);
+
+  iData[0](iInstFIFO);
+  iData[1](iInstCache);
+  for (uint i=2; i<params.numInputChannels; i++)
+    iData[i](iDataFIFOs.iData[i]);
+  iCredit(iCreditFIFO);
+  oMemory(oDataFIFOs.oMemory);
+  oMulticast(oDataFIFOs.oMulticast);
+}
+
+void Core::readRegister(RegisterIndex index, RegisterPort port) {
+  registers.read(index, port);
+}
+void Core::writeRegister(RegisterIndex index, int32_t value) {
+  registers.write(index, value);
+}
+
+void Core::readPredicate() {
+  predicate.read();
+}
+void Core::writePredicate(bool value) {
+  predicate.write(value);
+}
+
+void Core::fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
+                 bool execute, bool persistent) {
+  // TODO
+}
+void Core::jump(JumpOffset offset) {
+  // TODO
+}
+
+void Core::computeLatency(opcode_t opcode, function_t fn) {
+  LOKI_ERROR << "Can't compute in " << this->name() << endl;
+  loki_assert(false);
+}
+
+void Core::readCMT(RegisterIndex index) {
+  channelMapTable.read(index);
+}
+void Core::writeCMT(RegisterIndex index, EncodedCMTEntry value) {
+  channelMapTable.write(index, value);
+}
+
+void Core::readCreg(RegisterIndex index) {
+  controlRegisters.read(index);
+}
+void Core::writeCreg(RegisterIndex index, int32_t value) {
+  controlRegisters.write(index, value);
+}
+
+void Core::readScratchpad(RegisterIndex index) {
+  scratchpad.read(index);
+}
+void Core::writeScratchpad(RegisterIndex index, int32_t value) {
+  scratchpad.write(index, value);
+}
+
+void Core::syscall(int code) {
+  systemCallHandler.call((SystemCall::Code)code);
+}
+
+void Core::waitForCredit(ChannelIndex channel) {
+  // TODO
+  // channelMapTable.something? What if all credits are already here?
+}
+void Core::selectChannelWithData(uint bitmask) {
+  iDataFIFOs.selectChannelWithData(bitmask);
+}
+
+void Core::sendOnNetwork(NetworkData flit) {
+  oDataFIFOs.write(flit);
+}
+uint Core::creditsAvailable(ChannelIndex channel) const {
+  return channelMapTable.creditsAvailable(channel);
+}
+
+void Core::startRemoteExecution(ChannelID address) {
+  LOKI_ERROR << "Can't start remote execution from " << this->name() << endl;
+  loki_assert(false);
+}
+void Core::endRemoteExecution() {
+  LOKI_ERROR << "Can't end remote execution from " << this->name() << endl;
+  loki_assert(false);
+}
+
+
+ChannelID Core::getNetworkDestination(EncodedCMTEntry channelMap,
+                                      MemoryAddr address) const {
+  // TODO
+}
+
+bool Core::inputFIFOHasData(ChannelIndex fifo) const {
+  return iDataFIFOs.hasData(fifo);
+}
+
+
+
+int32_t Core::debugRegisterRead(RegisterIndex reg) {
+  return registers.debugRead(reg);
+}
+int32_t Core::debugReadByte(MemoryAddr address) {
+  return tile().readByteInternal(getSystemCallMemory(address), address).toInt();
+}
+void Core::debugRegisterWrite(RegisterIndex reg, int32_t data) {
+  registers.debugWrite(reg, data);
+}
+void Core::debugWriteByte(MemoryAddr address, int32_t data) {
+  tile().writeByteInternal(getSystemCallMemory(address), address, data);
+}
+
+uint Core::coreIndex() const {return tile().coreIndex(id);}
+uint Core::coresThisTile() const {return tile().numCores();}
+uint Core::globalCoreIndex() const {return tile().globalCoreIndex(id);}
+
+ComputeTile& Core::tile() const {
+  return static_cast<ComputeTile&>(*(this->get_parent_object()));
+}
+
+ComponentID Core::getSystemCallMemory(MemoryAddr address) const {
+  // If accessing a group of memories, determine which bank to access.
+  // Default memory channel is 1.
+  ChannelMapEntry& channelMap = channelMapTable.debugRead(1);
+
+  uint increment = channelMap.computeAddressIncrement(address);
+  return ComponentID(id.tile,
+      channelMap.memoryView().bank + increment + coresThisTile());
+}
+
+} // end namespace
+
