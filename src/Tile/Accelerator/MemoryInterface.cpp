@@ -426,7 +426,7 @@ void MemoryInterface::processResponse() {
   Flit<Word> flit = responseBuffer.read();
   loki_assert_with_message(!inFlight.empty(), "Flit = %s", flit.getString().c_str());
 
-  uint32_t payload = flit.payload().toUInt();
+  int32_t payload = flit.payload().toInt();
 
   // The destination PE (and other info) for this data is held in a queue.
   request_t request = inFlight.front();

@@ -58,6 +58,7 @@ void ComputeStage<T>::mainLoop() {
   }
 
   // Main work.
+  LOKI_LOG << this->name() << " started tick " << tick << endl;
   compute();
 
   // Flow control.
