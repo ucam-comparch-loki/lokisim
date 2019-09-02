@@ -438,7 +438,7 @@ void MemoryInterface::processResponse() {
   response.data = payload;
   responses.push(response);
 
-  LOKI_LOG << this->name() << ": received " << payload << " for PE "
+  LOKI_LOG(3) << this->name() << ": received " << payload << " for PE "
       << response.position << ", tick " << request.tick << endl;
 
   responseArrived.notify(sc_core::SC_ZERO_TIME);
@@ -475,7 +475,7 @@ void MemoryInterface::sendRequest() {
   requests.pop();
 
   if (request.operation != PAYLOAD && request.operation != PAYLOAD_EOP)
-    LOKI_LOG << this->name() << ": accessing " << LOKI_HEX(request.address) << " for PE " << request.position << endl;
+    LOKI_LOG(3) << this->name() << ": accessing " << LOKI_HEX(request.address) << " for PE " << request.position << endl;
 
   // The network address of the memory to access.
   ChannelID memoryBank(id().tile, memory + CORES_PER_TILE, parent().memoryMapping.channel);

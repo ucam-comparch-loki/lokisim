@@ -49,14 +49,14 @@ void ParameterReceiver::receiveParameter() {
   array[parametersReceived] = parameter;
   parametersReceived++;
 
-  LOKI_LOG << this->name() << ": received parameter " << parameter << " ("
+  LOKI_LOG(2) << this->name() << ": received parameter " << parameter << " ("
       << parametersReceived << "/" << (sizeof(conv_parameters_t)/sizeof(uint32_t))
       << ")" << endl;
 
   // Trigger event if necessary.
   if (hasAllParameters()) {
     allParametersArrivedEvent.notify(sc_core::SC_ZERO_TIME);
-    LOKI_LOG << this->name() << ": has all parameters" << endl;
+    LOKI_LOG(2) << this->name() << ": has all parameters" << endl;
   }
 
   // TODO: Flow control for receiver - perhaps a separate method.

@@ -241,7 +241,7 @@ void DMA::newCommandArrived() {
 
 void DMA::detectIdleness() {
   if (isIdle()) {
-    LOKI_LOG << this->name() << " is now idle" << endl;
+    LOKI_LOG(3) << this->name() << " is now idle" << endl;
     becameIdle.notify(sc_core::SC_ZERO_TIME);
   }
 }

@@ -88,7 +88,7 @@ NetworkRequest Directory::updateRequest(const NetworkRequest& request) const {
                         | (directory[entry].replaceBits << shiftAmount);
   metadata.scratchpad = directory[entry].scratchpad;
 
-  LOKI_LOG << "Directory updated address " << LOKI_HEX(address) << " to "
+  LOKI_LOG(1) << "Directory updated address " << LOKI_HEX(address) << " to "
       << LOKI_HEX(newAddress) << " on tile " << nextTile << endl;
 
   NetworkRequest updated = request;

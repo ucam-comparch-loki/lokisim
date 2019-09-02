@@ -26,7 +26,7 @@ bool ConvolutionAlgorithm::executing() const {
 }
 
 void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
-  assert(!executing());
+  loki_assert(!executing());
 
   this->parameters = parameters;
 
@@ -40,7 +40,7 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
 }
 
 void ConvolutionAlgorithm::step() {
-  assert(loopNest.size() >= 2);
+  loki_assert_with_message(loopNest.size() >= 2, "Size = %d", loopNest.size());
 
   // Determine the addresses of all data types in the current iteration.
   // TODO This is only valid for inference.
@@ -199,8 +199,8 @@ vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(const conv_parameters_t p
 vector<loop_t> ConvolutionAlgorithm::reorderLoops(const vector<loop_t>& unordered,
                                                   const LoopOrder& order) const {
   // Currently LoopOrders are fixed to 8 elements.
-  assert(unordered.size() == 8);
-  assert(order.size() == 8);
+  loki_assert_with_message(unordered.size() == 8, "Size = %d", unordered.size());
+  loki_assert_with_message(order.size() == 8, "Size = %d", order.size());
 
   vector<loop_t> ordered;
   for (uint loop=0; loop<8; loop++) {

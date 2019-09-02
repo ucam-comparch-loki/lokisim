@@ -794,7 +794,7 @@ private:
 
       loki_assert(command.rowLength > 0);
       loki_assert(command.colLength > 0);
-      LOKI_LOG << this->name() << " loading " << command.rowLength
+      LOKI_LOG(2) << this->name() << " loading " << command.rowLength
           << " columns x " << command.colLength << " rows" << endl;
 
       // TODO Make this a parameter.
@@ -851,7 +851,7 @@ private:
     outstandingResponses--;
     if (outstandingResponses == 0) {
       oDataToPEs->finishedWriting(this->currentTick);
-      LOKI_LOG << this->name() << " sending data for tick " << this->currentTick << endl;
+      LOKI_LOG(2) << this->name() << " sending data for tick " << this->currentTick << endl;
     }
 
     // To emulate parallel operations, receive the next response immediately,

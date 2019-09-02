@@ -152,7 +152,7 @@ void ControlUnit::startExecution() {
     updateMemoryMapping(parameters);
     notificationAddress.write(parameters.notificationAddress);
 
-    LOKI_LOG << this->name() << " starting computation" << endl;
+    LOKI_LOG(1) << this->name() << " starting computation" << endl;
     startTime = Instrumentation::currentCycle();
 
     algorithm.start(parameters);
@@ -184,7 +184,7 @@ void ControlUnit::notifyFinished() {
   // This may not be valid if multiple computations get queued up.
   loki_assert(!algorithm.executing());
 
-  LOKI_LOG << this->name() << " finished computation" << endl;
+  LOKI_LOG(1) << this->name() << " finished computation" << endl;
 //  cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
 
   loki_assert(coreNotification.canWrite());

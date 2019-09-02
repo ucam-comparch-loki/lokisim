@@ -94,6 +94,7 @@ parameter MAGIC_MEMORY               = 0;
   parameter get ## NAME(const chip_parameters_t& p) {return p.LOCATION;}\
   void set ## NAME(chip_parameters_t& p, parameter v) {p.LOCATION = v;}
 
+GETTER_SETTER(AcceleratorsPerTile,      tile.numAccelerators);
 GETTER_SETTER(MemoriesPerTile,          tile.numMemories);
 GETTER_SETTER(ComputeTileRows,          numComputeTiles.height);
 GETTER_SETTER(ComputeTileColumns,       numComputeTiles.width);
@@ -117,6 +118,14 @@ GETTER_SETTER(CoreOutputFIFOSize,       tile.core.outputFIFO.size);
 GETTER_SETTER(MemoryBankInputFIFOSize,  tile.memory.inputFIFO.size);
 GETTER_SETTER(MemoryBankOutputFIFOSize, tile.memory.outputFIFO.size);
 GETTER_SETTER(RouterFIFOSize,           router.fifo.size);
+GETTER_SETTER(AcceleratorPERows,        tile.accelerator.numPEs.height);
+GETTER_SETTER(AcceleratorPEColumns,     tile.accelerator.numPEs.width);
+GETTER_SETTER(AcceleratorBroadcastRow,  tile.accelerator.broadcastRows);
+GETTER_SETTER(AcceleratorBroadcastCol,  tile.accelerator.broadcastCols);
+GETTER_SETTER(AcceleratorAccumulateRow, tile.accelerator.accumulateRows);
+GETTER_SETTER(AcceleratorAccumulateCol, tile.accelerator.accumulateCols);
+GETTER_SETTER(AcceleratorPELatency,     tile.accelerator.latency);
+GETTER_SETTER(AcceleratorPEInitInterval,tile.accelerator.initiationInterval);
 
 // Non-standard getters/setters access location outside of the parameter struct,
 // or access more than one location.
@@ -159,7 +168,10 @@ void initialiseParameters() {
     return;
 
   addParameter("cores-per-tile", "Cores per tile", "",
-               getCoresPerTile, setCoresPerTile, 8);
+               getCoresPerTile, setCoresPerTile, 2);
+
+  addParameter("accelerators-per-tile", "Accelerators per tile", "",
+               getAcceleratorsPerTile, setAcceleratorsPerTile, 1);
 
   addParameter("memories-per-tile", "Memory banks per tile", "",
                getMemoriesPerTile, setMemoriesPerTile, 8);
@@ -261,12 +273,61 @@ void initialiseParameters() {
   addParameter("magic-memory", "Magic memory",
                "When true, all memory operations complete instantly.",
                getMagicMemory, setMagicMemory, 0);
+  
+  addParameter("accelerator-pe-rows", "Accelerator PE rows",
+               "Rows of processing elements in each accelerator",
+               getAcceleratorPERows, setAcceleratorPERows, 4);
+  abbreviations["accelerator-width"] = "accelerator-pe-rows";
+  abbreviations["acc-pe-rows"] = "accelerator-pe-rows";
+  abbreviations["acc-width"] = "accelerator-pe-rows";
+  
+  addParameter("accelerator-pe-columns", "Accelerator PE columns",
+               "Columns of processing elements in each accelerator",
+               getAcceleratorPEColumns, setAcceleratorPEColumns, 4);
+  abbreviations["accelerator-height"] = "accelerator-pe-columns";
+  abbreviations["acc-height"] = "accelerator-pe-columns";
+  abbreviations["accelerator-pe-cols"] = "accelerator-pe-columns";
+  abbreviations["acc-pe-columns"] = "accelerator-pe-columns";
+  abbreviations["acc-pe-cols"] = "accelerator-pe-columns";
+  
+  addParameter("accelerator-broadcast-rows", "Accelerator broadcast rows",
+               "Broadcast data along each row of PEs in each accelerator",
+               getAcceleratorBroadcastRow, setAcceleratorBroadcastRow, 0);
+  abbreviations["acc-broadcast-rows"] = "accelerator-broadcast-rows";
+  
+  addParameter("accelerator-broadcast-columns", "Accelerator broadcast columns",
+               "Broadcast data along each column of PEs in each accelerator",
+               getAcceleratorBroadcastCol, setAcceleratorBroadcastCol, 0);
+  abbreviations["acc-broadcast-cols"] = "accelerator-broadcast-cols";
+
+  addParameter("accelerator-accumulate-rows", "Accelerator accumulate rows",
+               "Accumulate results within each row of PEs in each accelerator",
+               getAcceleratorAccumulateRow, setAcceleratorAccumulateRow, 1);
+  abbreviations["acc-accumulate-rows"] = "accelerator-accumulate-rows";
+
+  addParameter("accelerator-accumulate-columns", "Accelerator accumulate columns",
+               "Accumulate results within each column of PEs in each accelerator",
+               getAcceleratorAccumulateCol, setAcceleratorAccumulateCol, 1);
+  abbreviations["acc-accumulate-cols"] = "accelerator-accumulate-cols";
+
+  addParameter("accelerator-pe-latency", "Accelerator PE latency",
+               "Time between PE receiving input and producing output, in cycles",
+               getAcceleratorPELatency, setAcceleratorPELatency, 1);
+  abbreviations["acc-pe-latency"] = "accelerator-pe-latency";
+
+  addParameter("accelerator-pe-initiation-interval", "Accelerator PE initiation interval",
+               "Time between PE receiving input and being ready to receive another input, in cycles",
+               getAcceleratorPEInitInterval, setAcceleratorPEInitInterval, 1);
+  abbreviations["accelerator-pe-ii"] = "accelerator-pe-initiation-interval";
+  abbreviations["acc-pe-initiation-interval"] = "accelerator-pe-initiation-interval";
+  abbreviations["acc-pe-ii"] = "accelerator-pe-initiation-interval";
 
   addParameter("network-bandwidth", "Network bandwidth",
                "Bandwidth of all on-chip networks, in words per cycle.",
                getNetworkBandwidth, setNetworkBandwidth, 1);
 
   deprecated["CORES_PER_TILE"] = "cores-per-tile";
+  deprecated["ACCELERATORS_PER_TILE"] = "accelerators-per-tile";
   deprecated["MEMS_PER_TILE"] = "memories-per-tile";
   deprecated["COMPUTE_TILE_ROWS"] = "compute-tile-rows";
   deprecated["COMPUTE_TILE_COLUMNS"] = "compute-tile-columns";
@@ -287,6 +348,12 @@ void initialiseParameters() {
   deprecated["MEMORY_BUFFER_SIZE"] = "memory-bank-input-fifo-size";
   deprecated["ROUTER_BUFFER_SIZE"] = "router-fifo-size";
   deprecated["MAGIC_MEMORY"] = "magic-memory";
+  deprecated["ACCELERATOR_WIDTH"] = "accelerator-pe-rows";
+  deprecated["ACCELERATOR_HEIGHT"] = "accelerator-pe-columns";
+  deprecated["ACCELERATOR_BCAST_ROWS"] = "accelerator-broadcast-rows";
+  deprecated["ACCELERATOR_BCAST_COLS"] = "accelerator-broadcast-columns";
+  deprecated["ACCELERATOR_ACC_ROWS"] = "accelerator-accumulate-rows";
+  deprecated["ACCELERATOR_ACC_COLS"] = "accelerator-accumulate-columns";
 }
 
 size_t core_parameters_t::numOutputChannels() const {
@@ -449,6 +516,7 @@ chip_parameters_t* Parameters::defaultParameters() {
 
   // Some extra parameters not accessible through the command line yet.
   p->tile.memory.cacheLineSize = 8 * BYTES_PER_WORD;
+  p->tile.accelerator.loops = LoopOrders::naive;
   p->memory.cacheLineSize = p->tile.memory.cacheLineSize;
 
   return p;
