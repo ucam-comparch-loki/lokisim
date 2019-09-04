@@ -79,7 +79,7 @@ unsigned long TIMEOUT = ULONG_MAX;
 int RETURN_CODE = EXIT_SUCCESS;
 
 // Number of cores in each tile.
-parameter CORES_PER_TILE             = 8;
+parameter CORES_PER_TILE             = 2;
 
 // If set to 1, all memory operations complete instantaneously.
 parameter MAGIC_MEMORY               = 0;
@@ -223,7 +223,7 @@ void initialiseParameters() {
                getDirectorySize, setDirectorySize, 16);
 
   addParameter("memory-bank-latency", "Memory bank latency",
-               "Latency (in cycles) of the on-tile memory banks.",
+               "Latency (in cycles) of the on-tile memory banks, including network traversal.",
                getMemoryBankLatency, setMemoryBankLatency, 3);
 
   addParameter("memory-bank-size", "Memory bank size",
