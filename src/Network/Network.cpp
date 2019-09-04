@@ -95,7 +95,7 @@ void Network<T>::sendData(PortIndex output) {
     outputs[output]->write(flit);
 
     if (ENERGY_TRACE)
-        Instrumentation::Network::crossbarOutput(previousFlit, flit);
+      Instrumentation::Network::crossbarOutput(previousFlit, flit);
 
     if (flit.getMetadata().endOfPacket)
       arbiters[output].release();

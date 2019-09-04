@@ -19,7 +19,7 @@
 #define SRC_NETWORK_DELAYFIFO_H_
 
 #include "NetworkFIFO.h"
-#include <queue>
+#include <deque>
 
 using sc_core::sc_time;
 using sc_core::SC_NS;
@@ -37,11 +37,26 @@ public:
 
 public:
 
-  DelayFIFO(const sc_module_name& name, const size_t size, const double delayCycles) :
-      NetworkFIFO<T>(name, size + int(delayCycles)),
+  SC_HAS_PROCESS(DelayFIFO);
+
+  DelayFIFO(const sc_module_name& name, const fifo_parameters_t& params,
+    const double delayCycles) :
+      NetworkFIFO<T>(name, params.size + int(delayCycles), params.bandwidth),
       delay(delayCycles) {
 
+    SC_METHOD(delayedWriteEvent);
+
   }
+
+  DelayFIFO(const sc_module_name& name, size_t size, bandwidth_t bandwidth,
+    const double delayCycles) :
+      NetworkFIFO<T>(name, size + int(delayCycles), bandwidth),
+      delay(delayCycles) {
+
+    SC_METHOD(delayedWriteEvent);
+
+  }
+
   virtual ~DelayFIFO() {}
 
 //============================================================================//
@@ -51,24 +66,10 @@ public:
 public:
 
   virtual const stored_data read() {
-    loki_assert(writeTimes.front() <= currentTime());
+    loki_assert(writeTimes.front().time <= currentTime());
 
     const stored_data data = base_class::read();
-    writeTimes.pop();
-
-    // If the head of the queue hasn't yet reached the buffer, trigger an event
-    // when it does so.
-    // TODO: should the write event really be relevant here?
-    if (!trulyEmpty()) {
-      if (!canRead()) {
-        delayedWrite.notify(sc_time(writeTimes.front() - currentTime(), SC_NS));
-        delayedNewHeadFlit.notify(sc_time(writeTimes.front() - currentTime(), SC_NS));
-      }
-      else {
-        delayedWrite.notify(sc_core::SC_ZERO_TIME);
-        delayedNewHeadFlit.notify(sc_core::SC_ZERO_TIME);
-      }
-    }
+    writeTimes.pop_front();
 
     loki_assert(base_class::items() == writeTimes.size());
 
@@ -77,26 +78,14 @@ public:
 
   virtual void write(const stored_data& data) {
     base_class::write(data);
-    writeTimes.push(currentTime() + delay);
-
-    delayedWrite.notify(sc_time(this->delay, SC_NS));
-    if (base_class::items() == 1)
-      delayedNewHeadFlit.notify(sc_time(this->delay, SC_NS));
+    
+    // Record when this write should become visible to others.
+    EventStatus status;
+    status.time = currentTime() + delay;
+    status.triggered = false;
+    writeTimes.push_back(status);
 
     loki_assert(base_class::items() == writeTimes.size());
-  }
-
-  // The buffer is empty if there is no data, or if there is data, but it is
-  // not old enough to be read yet.
-  virtual bool canRead() const {
-    return base_class::canRead() &&
-           writeTimes.front() <= currentTime();
-  }
-
-  // Event which is triggered whenever the head flit changes (accounting for
-  // the delay).
-  virtual const sc_event& canReadEvent() const {
-    return delayedNewHeadFlit;
   }
 
   // Event which is triggered whenever data is written to the buffer (after
@@ -105,15 +94,47 @@ public:
     return delayedWrite;
   }
 
+protected:
+
+  // The buffer is empty if there is no data, or if there is data, but it is
+  // not old enough to be read yet.
+  virtual bool empty() const {
+    return base_class::empty() ||
+           writeTimes.front().time > currentTime();
+  }
+
 private:
 
   double currentTime() const {
     return sc_core::sc_time_stamp().to_default_time_units();
   }
 
+  // Ensure delayedWrite is triggered at the correct times, and the correct
+  // number of times. SystemC only allows one pending notification on each
+  // event, so I need to track this manually to handle bursts of writes.
+  void delayedWriteEvent() {
+    // Find the first untriggered event, and trigger it. Add a delta cycle if
+    // necessary to avoid triggering multiple times simultaneously.
+    for (auto it=writeTimes.begin(); it != writeTimes.end(); ++it) {
+      if (!it->triggered) {
+        if (it->time == currentTime())
+          delayedWrite.notify(sc_core::SC_ZERO_TIME);
+        else
+          delayedWrite.notify(it->time - currentTime(), SC_NS);
+
+        it->triggered = true;
+        next_trigger(delayedWrite);
+        return;
+      }
+    }
+
+    // Default trigger: new data written to FIFO.
+    next_trigger(base_class::writeEvent());
+  }
+
   // Returns whether the buffer is empty, regardless of how old the data is.
   bool trulyEmpty() const {
-    return base_class::fifo.empty();
+    return base_class::empty();
   }
 
 //============================================================================//
@@ -122,14 +143,19 @@ private:
 
 protected:
 
+  typedef struct {
+    double time;      // The time when an event should be triggered.
+    bool   triggered; // Whether this event has been triggered (can't trigger
+                      // multiple simultaneously).
+  } EventStatus;
+
   // The times at which each item should become visible in the buffer.
-  std::queue<double> writeTimes;
+  std::deque<EventStatus> writeTimes;
 
   const double delay;
 
   // Event which is notified whenever data reaches the modelled buffer.
   sc_event delayedWrite;
-  sc_event delayedNewHeadFlit;
 };
 
 #endif /* SRC_NETWORK_DELAYFIFO_H_ */

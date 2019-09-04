@@ -18,10 +18,12 @@ MainMemoryRequestHandler::MainMemoryRequestHandler(sc_module_name name,
     iClock("iClock"),
     iData("iData"),
     oData("oData"),
-    inputQueue("inQueue", 10), // enough for a cache line + head flit
-    outputQueue("delay", 1024 /* "infinite" size */, (double)params.latency),
+    inputQueue("inQueue", 10, 100), // enough for a cache line + head flit
+    outputQueue("delay", 1024 /* "infinite" size */, 100, (double)params.latency),
     mainMemory(memory) {
 
+  inputQueue.clock(iClock);
+  outputQueue.clock(iClock);
   iData(inputQueue);
   oData(outputQueue);
 

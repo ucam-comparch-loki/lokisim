@@ -19,6 +19,7 @@
 
 typedef uint64_t count_t;
 typedef count_t  cycle_count_t;
+typedef uint     bandwidth_t;
 
 typedef struct {
   size_t width;

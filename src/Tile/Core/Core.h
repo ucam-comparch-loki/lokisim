@@ -15,6 +15,7 @@
 #ifndef CORE_H_
 #define CORE_H_
 
+#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Utility/LokiVector.h"
 #include "ChannelMapTable.h"

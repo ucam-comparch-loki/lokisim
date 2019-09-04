@@ -13,11 +13,13 @@ MemoryControllerTile::MemoryControllerTile(const sc_module_name& name, const Til
     Tile(name, id),
     oRequestToMainMemory("oRequestToMainMemory"),
     iResponseFromMainMemory("iResponseFromMainMemory"),
-    incomingRequests("request_buf", 4), // Not sure what size is sensible here
+    incomingRequests("request_buf", 4, 100), // Not sure what size is sensible here
     dataDeadEnd("data", id, "local"),
     creditDeadEnd("credit", id, "local"),
     requestDeadEnd("request", id, "local"),
     responseDeadEnd("response", id, "local") {
+
+  incomingRequests.clock(clock);
 
   // Tie off unused networks here.
   // This tile is only connected to request inputs and response outputs.

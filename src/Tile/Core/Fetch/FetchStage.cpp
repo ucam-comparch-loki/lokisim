@@ -549,6 +549,8 @@ FetchStage::FetchStage(sc_module_name name,
     fetchBuffer("fetchBuffer", 1) {
 
   // Connect ports.
+  fifo.clock(clock);
+  cache.clock(clock);
   iToFIFO(fifo);
   iToCache(cache);
 

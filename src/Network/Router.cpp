@@ -36,9 +36,10 @@ Router<T>::Router(const sc_module_name& name, const TileID& ID,
 
     std::stringstream bufName;
     bufName << "in_buf_" << DirectionNames[i];
-    NetworkFIFO<T>* buf = new NetworkFIFO<T>(bufName.str().c_str(), params.fifo.size);
+    NetworkFIFO<T>* buf = new NetworkFIFO<T>(bufName.str().c_str(), params.fifo);
     inputBuffers.push_back(buf);
 
+    inputBuffers[i].clock(clock);
     inputs[i](inputBuffers[i]);
     internal.inputs[i](inputBuffers[i]);
     internal.outputs[i](outputs[i]);

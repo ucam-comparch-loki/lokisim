@@ -16,6 +16,7 @@
 #include "FIFO.h"
 #include "../Interface.h"
 #include "../../Utility/Instrumentation/Network.h"
+#include "../BandwidthMonitor.h"
 
 // TODO: add a bandwidth check to ensure there aren't too many reads/writes per
 // cycle. BandwidthMonitor class? dataAvailable and canWrite should return false.
@@ -28,16 +29,45 @@ public:
   typedef Flit<T> stored_data;
 
 //============================================================================//
+// Ports
+//============================================================================//
+
+public:
+
+  ClockInput clock;
+
+//============================================================================//
 // Constructors and destructors
 //============================================================================//
 
 public:
 
-  NetworkFIFO(const sc_module_name& name, const size_t size) :
+  SC_HAS_PROCESS(NetworkFIFO);
+  NetworkFIFO(const sc_module_name& name, size_t size, bandwidth_t bandwidth) :
       LokiComponent(name),
       BlockingInterface(),
+      clock("clock"),
       fifo("internal", size),
-      fresh(size, false) {
+      fresh(size, false),
+      readBandwidth(bandwidth),
+      writeBandwidth(bandwidth) {
+
+    SC_METHOD(monitorHeadFlit);
+    SC_METHOD(monitorSpaceAvailable);
+
+  }
+
+  NetworkFIFO(const sc_module_name& name, const fifo_parameters_t& params) :
+      LokiComponent(name),
+      BlockingInterface(),
+      clock("clock"),
+      fifo("internal", params.size),
+      fresh(params.size, false),
+      readBandwidth(params.bandwidth),
+      writeBandwidth(params.bandwidth) {
+
+    SC_METHOD(monitorHeadFlit);
+    SC_METHOD(monitorSpaceAvailable);
 
   }
 
@@ -51,7 +81,7 @@ public:
 
   virtual const stored_data read() {
     LOKI_LOG(3) << name() << " consumed " << peek() << endl;
-    if (fifo.full() && fifo.size() > 1)
+    if (full() && fifo.size() > 1)
       LOKI_LOG(3) << name() << " is no longer full" << endl;
     Instrumentation::Network::recordBandwidth(this->name());
 
@@ -60,9 +90,7 @@ public:
       fresh[fifo.getReadPointer()] = false;
     }
 
-    if (items() > 1)
-      newHeadFlit.notify(sc_core::SC_ZERO_TIME);
-
+    readBandwidth.recordEvent();
     return fifo.read();
   }
 
@@ -73,13 +101,11 @@ public:
   virtual void write(const stored_data& newData) {
     LOKI_LOG(3) << name() << " received " << newData << endl;
 
-    if (fifo.empty())
-      newHeadFlit.notify(sc_core::SC_ZERO_TIME);
-
     fresh[fifo.getWritePointer()] = true;
     fifo.write(newData);
+    writeBandwidth.recordEvent();
 
-    if (fifo.full() && fifo.size() > 1)
+    if (full() && fifo.size() > 1)
       LOKI_LOG(3) << name() << " is full" << endl;
   }
 
@@ -98,9 +124,10 @@ public:
   }
 
   virtual bool canRead() const {
-    return !fifo.empty();
+    return !empty() && readBandwidth.bandwidthAvailable();
   }
 
+  // Event triggered whenever it becomes possible to read from the FIFO.
   virtual const sc_event& canReadEvent() const {
     return newHeadFlit;
   }
@@ -110,11 +137,12 @@ public:
   }
 
   virtual bool canWrite() const {
-    return !fifo.full();
+    return !full() && writeBandwidth.bandwidthAvailable();
   }
 
+  // Event triggered whenever it becomes possible to write to the FIFO.
   virtual const sc_event& canWriteEvent() const {
-    return fifo.readEvent();
+    return newSpaceAvailable;
   }
 
 
@@ -122,7 +150,7 @@ public:
     return fifo.items();
   }
 
-  // Public for IPK FIFO only. Can we avoid exposing this?
+  // Public for IPK FIFO only. Can we avoid exposing this - put in a subclass?
   unsigned int getReadPointer() const {
     return fifo.getReadPointer();
   }
@@ -150,11 +178,44 @@ protected:
       os << "  FIFO is full" << endl;
   }
 
+  virtual bool empty() const {
+    return fifo.empty();
+  }
+
+  virtual bool full() const {
+    return fifo.full();
+  }
+
+  // Trigger newHeadFlit whenever a new head flit is available for reading.
+  void monitorHeadFlit() {
+    if (empty())
+      next_trigger(writeEvent());
+    else if (!readBandwidth.bandwidthAvailable())
+      next_trigger(clock.posedge_event());
+    else {
+      newHeadFlit.notify(sc_core::SC_ZERO_TIME);
+      next_trigger(fifo.readEvent());
+    }
+  }
+
+  // Trigger newSpaceAvailable whenever a new buffer space is available for
+  // writing.
+  void monitorSpaceAvailable() {
+    if (full())
+      next_trigger(fifo.readEvent());
+    else if (!writeBandwidth.bandwidthAvailable())
+      next_trigger(clock.posedge_event());
+    else {
+      newSpaceAvailable.notify(sc_core::SC_ZERO_TIME);
+      next_trigger(writeEvent());
+    }
+  }
+
 //============================================================================//
 // Local state
 //============================================================================//
 
-protected:
+private:
 
   // The internal data storage.
   FIFO<stored_data> fifo;
@@ -168,6 +229,12 @@ protected:
 
   // Event triggered whenever the first flit in the queue changes.
   sc_event newHeadFlit;
+
+  // Event triggered whenever a new space is available to be written to.
+  sc_event newSpaceAvailable;
+
+  // Record the bandwidth used when reading and writing this FIFO.
+  BandwidthMonitor readBandwidth, writeBandwidth;
 
 };
 

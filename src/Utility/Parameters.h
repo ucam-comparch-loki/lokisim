@@ -66,10 +66,12 @@ typedef struct {
 
 typedef struct {
   size_t size;      // Measured in flits
+  bandwidth_t bandwidth; // Measured in flits/cycle. Separate BW for read/write.
 } fifo_parameters_t;
 
 typedef struct {
   size_t size;      // Measured in words
+  bandwidth_t bandwidth; // Measured in flits/cycle. For writing only.
   size_t numTags;
   size_t maxIPKSize;// Maximum number of instructions in a packet
 } cache_parameters_t;

@@ -127,9 +127,10 @@ ReceiveChannelEndTable::ReceiveChannelEndTable(const sc_module_name& name,
     std::stringstream bufName;
     ChannelID channel = Core::RCETInput(id(), i);
     bufName << "buffer_" << (uint)channel.channel;
-    NetworkFIFO<Word>* fifo = new NetworkFIFO<Word>(bufName.str().c_str(), fifoParams.size);
+    NetworkFIFO<Word>* fifo = new NetworkFIFO<Word>(bufName.str().c_str(), fifoParams);
     buffers.push_back(fifo);
 
+    buffers[i].clock(clock);
     iData[i](buffers[i]);
 
     SPAWN_METHOD(buffers[i].writeEvent(), ReceiveChannelEndTable::networkDataArrived, i, false);

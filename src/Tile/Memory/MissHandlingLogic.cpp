@@ -20,8 +20,8 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
     iRequestFromBanks("iRequestFromBanks"),
     oResponseToBanks("oResponseToBanks"),
     directory(params.directory.size),
-    requestsFromBanks("requestsFromBanks", 1),
-    responsesFromNetwork("responsesFromNetwork", 1) {
+    requestsFromBanks("requestsFromBanks", 1, 100),
+    responsesFromNetwork("responsesFromNetwork", 1, 100) {
 
   TileID memController = nearestMemoryController();
   directory.initialise(memController);
@@ -29,6 +29,9 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   requestDestination = ChannelID();
   newLocalRequest = true;
   requestHeaderValid = false;
+
+  requestsFromBanks.clock(clock);
+  responsesFromNetwork.clock(clock);
 
   iResponseFromNetwork(responsesFromNetwork);
   iRequestFromBanks(requestsFromBanks);
@@ -66,7 +69,6 @@ MemoryAddr MissHandlingLogic::getAddressTranslation(MemoryAddr address) const {
 }
 
 void MissHandlingLogic::localRequestLoop() {
-
   loki_assert(requestsFromBanks.canRead());
 
   // Stall until it is possible to send on the network.
@@ -134,10 +136,7 @@ void MissHandlingLogic::localRequestLoop() {
 
     newLocalRequest = endOfPacket;
 
-    // The mux may have other data ready to provide, so also wait until a
-    // clock edge.
-    // TODO Allow increased bandwidth.
-    next_trigger(requestsFromBanks.canReadEvent() & clock.posedge_event());
+    // Default trigger: new data available.
 
   }
 }

@@ -43,36 +43,6 @@ typedef loki_out<NetworkResponse>     ResponseOutput;
 typedef sc_in<ReadyType>              ReadyInput;
 typedef sc_out<ReadyType>             ReadyOutput;
 
-// Requests and grants used for arbitration.
-// Requests currently specify the destination channel so that the relevant
-// flow control information can be checked.
-typedef ChannelIndex                  ArbiterRequest;
-typedef bool                          ArbiterGrant;
-typedef int                           MuxSelect;
-
-typedef sc_signal<ArbiterRequest>     ArbiterRequestSignal;
-typedef sc_signal<ArbiterGrant>       ArbiterGrantSignal;
-typedef sc_signal<MuxSelect>          MuxSelectSignal;
-
-typedef sc_in<ArbiterRequest>         ArbiterRequestInput;
-typedef sc_out<ArbiterRequest>        ArbiterRequestOutput;
-typedef sc_in<ArbiterGrant>           ArbiterGrantInput;
-typedef sc_out<ArbiterGrant>          ArbiterGrantOutput;
-typedef sc_in<MuxSelect>              MuxSelectInput;
-typedef sc_out<MuxSelect>             MuxSelectOutput;
-
-const ArbiterRequest NO_REQUEST = 255;
-const MuxSelect NO_SELECTION = -1;
-
-
-// The topology of the network in each tile.
-class LocalNetwork;
-typedef LocalNetwork local_net_t;
-
-// The topology of the network between tiles.
-class Mesh;
-typedef Mesh global_net_t;
-
 enum Direction {NORTH, EAST, SOUTH, WEST, LOCAL};
 
 #endif /* NETWORKTYPEDEFS_H_ */

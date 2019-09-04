@@ -14,12 +14,13 @@
 IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& params) :
     LokiComponent(name),
     BlockingInterface(),
+    clock("clock"),
     iData("iData"),
     oData("oData"),
     oCredit("oCredit"),
     iFlowControl("iFlowControl", params.numCores, params.core.numInputChannels),
-    inBuffer("inBuffer", 4),  // To match Verilog
-    outBuffer("outBuffer", 1) {
+    inBuffer("inBuffer", 4, 100),  // To match Verilog
+    outBuffer("outBuffer", 1, 100) {
 
   nackChannel = ChannelID();
 
@@ -32,6 +33,8 @@ IntertileUnit::IntertileUnit(sc_module_name name, const tile_parameters_t& param
     }
   }
 
+  inBuffer.clock(clock);
+  outBuffer.clock(clock);
   iData(inBuffer);
   oData(outBuffer);
 

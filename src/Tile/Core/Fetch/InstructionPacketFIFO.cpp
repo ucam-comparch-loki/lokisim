@@ -145,8 +145,11 @@ const Flit<Word> InstructionPacketFIFO::lastDataWritten() const {
 InstructionPacketFIFO::InstructionPacketFIFO(sc_module_name name,
                                              const fifo_parameters_t& params) :
     LokiComponent(name),
-    fifo("fifo", params.size),
+    clock("clock"),
+    fifo("fifo", params),
     addresses(params.size, DEFAULT_TAG) {
+
+  fifo.clock(clock);
 
   tag = DEFAULT_TAG;
 

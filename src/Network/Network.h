@@ -1,12 +1,14 @@
 /*
  * Network.h
  *
+ * Base class for all networks.
+ *
  *  Created on: 19 Mar 2019
  *      Author: db434
  */
 
-#ifndef SRC_NETWORK_TOPOLOGIES_NETWORK_H_
-#define SRC_NETWORK_TOPOLOGIES_NETWORK_H_
+#ifndef SRC_NETWORK_NETWORK_H_
+#define SRC_NETWORK_NETWORK_H_
 
 #include <set>
 #include "../LokiComponent.h"
@@ -93,4 +95,4 @@ private:
 
 };
 
-#endif /* SRC_NETWORK_TOPOLOGIES_NETWORK_H_ */
+#endif /* SRC_NETWORK_NETWORK_H_ */

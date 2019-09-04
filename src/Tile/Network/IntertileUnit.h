@@ -31,8 +31,7 @@ class IntertileUnit: public LokiComponent, public BlockingInterface {
 
 public:
 
-  // Experimenting with making the buffers directly accessible instead of
-  // putting them behind ports.
+  ClockInput clock;
 
   // Data received from remote cores.
   sc_port<network_sink_ifc<Word>> iData;

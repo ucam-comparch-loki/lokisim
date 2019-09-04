@@ -129,6 +129,18 @@ void setDebug(chip_parameters_t& p, parameter v) {DEBUG = v;}
 parameter getTimeout(const chip_parameters_t& p) {return TIMEOUT;}
 void setTimeout(chip_parameters_t& p, parameter v) {TIMEOUT = v;}
 
+// Currently give all networks the same bandwidth.
+parameter getNetworkBandwidth(const chip_parameters_t& p) {return p.router.fifo.bandwidth;}
+void setNetworkBandwidth(chip_parameters_t& p, parameter v) {
+  p.tile.core.cache.bandwidth = v;
+  p.tile.core.inputFIFO.bandwidth = v;
+  p.tile.core.ipkFIFO.bandwidth = v;
+  p.tile.core.outputFIFO.bandwidth = v;
+  p.tile.memory.inputFIFO.bandwidth = v;
+  p.tile.memory.outputFIFO.bandwidth = v;
+  p.router.fifo.bandwidth = v;
+}
+
 void addParameter(string argument, string name, string description,
                   getFn getter, setFn setter, parameter defaultValue) {
   Parameter p;
@@ -249,6 +261,10 @@ void initialiseParameters() {
   addParameter("magic-memory", "Magic memory",
                "When true, all memory operations complete instantly.",
                getMagicMemory, setMagicMemory, 0);
+
+  addParameter("network-bandwidth", "Network bandwidth",
+               "Bandwidth of all on-chip networks, in words per cycle.",
+               getNetworkBandwidth, setNetworkBandwidth, 1);
 
   deprecated["CORES_PER_TILE"] = "cores-per-tile";
   deprecated["MEMS_PER_TILE"] = "memories-per-tile";

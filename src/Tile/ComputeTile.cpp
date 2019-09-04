@@ -186,6 +186,8 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   uint instructionInputs = Core::numInstructionChannels;
   uint totalInputs = params.core.numInputChannels;
 
+  creditBuffer.clock(clock);
+
   for (uint i=0; i<cores.size(); i++) {
     Core& core = cores[i];
 
@@ -247,6 +249,7 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   coreToMemory.outputs[coreToMemory.outputs.size()-1](oData);
   iData(icu.iData);
 
+  icu.clock(clock);
   icu.oCredit(oCredit);
 
   iCredit(creditBuffer);
@@ -274,7 +277,7 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
     mhlToBankResponses("mhl_to_bank_resp", params),
     bankToL2LResponses("bank_to_l2l_resp", params),
     l2lToBankRequests("l2l_to_bank_req", params.numMemories),
-    creditBuffer("credit_buffer", 1),
+    creditBuffer("credit_buffer", 1, 100),
     invertedClock("inverter") {
 
   makeComponents(params);

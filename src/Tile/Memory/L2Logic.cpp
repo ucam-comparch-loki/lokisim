@@ -17,7 +17,9 @@ L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
     oRequestToBanks("oRequestToBanks"),
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
-    requestsFromNetwork("requestsFromNetwork", 1) {
+    requestsFromNetwork("requestsFromNetwork", 1, 100) {
+
+  requestsFromNetwork.clock(clock);
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
   randomBank = 0;

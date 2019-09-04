@@ -187,11 +187,13 @@ SendChannelEndTable::SendChannelEndTable(sc_module_name name,
     iData("iData"),
     oMulticast("oDataMulticast"),
     oData("oDataMemory"),
-    bufferMulticast("bufferLocal", fifoParams.size),
-    bufferData("bufferMemory", fifoParams.size) {
+    bufferMulticast("bufferLocal", fifoParams),
+    bufferData("bufferMemory", fifoParams) {
 
   receiveState = RS_READY;
 
+  bufferMulticast.clock(clock);
+  bufferData.clock(clock);
   oMulticast(bufferMulticast);
   oData(bufferData);
 

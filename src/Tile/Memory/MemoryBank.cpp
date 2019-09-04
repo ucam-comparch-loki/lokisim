@@ -949,12 +949,12 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   oResponse("oResponse"),
   hitUnderMiss(params.hitUnderMiss),
   log2NumBanks(log2(numBanks)),
-  inputQueue("inputQueue", params.inputFIFO.size),
-  inResponseQueue("inResponseQueue", params.inputFIFO.size),
-  outputDataQueue("outputDataQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputInstQueue("outputInstQueue", params.outputFIFO.size, artificialDelayRequired(params)),
-  outputReqQueue("outputReqQueue", requestQueueSize(params), artificialDelayRequired(params)),
-  outputRespQueue("outputRespQueue", params.outputFIFO.size, artificialDelayRequired(params)),
+  inputQueue("inputQueue", params.inputFIFO),
+  inResponseQueue("inResponseQueue", params.inputFIFO),
+  outputDataQueue("outputDataQueue", params.outputFIFO, artificialDelayRequired(params)),
+  outputInstQueue("outputInstQueue", params.outputFIFO, artificialDelayRequired(params)),
+  outputReqQueue("outputReqQueue", requestQueueSize(params), requestQueueSize(params), artificialDelayRequired(params)),
+  outputRespQueue("outputRespQueue", params.outputFIFO, artificialDelayRequired(params)),
   data(params.size/BYTES_PER_WORD, 0),
   metadata(params.size/params.cacheLineSize),
   reservations(1),
@@ -974,6 +974,13 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   mainMemory = NULL;
 
   // Connect to local components.
+  inputQueue.clock(iClock);
+  inResponseQueue.clock(iClock);
+  outputDataQueue.clock(iClock);
+  outputInstQueue.clock(iClock);
+  outputReqQueue.clock(iClock);
+  outputRespQueue.clock(iClock);
+
   iData(inputQueue);
   iResponse(inResponseQueue);
   oData(outputDataQueue);
