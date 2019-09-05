@@ -66,7 +66,9 @@ public:
 public:
 
   virtual const stored_data read() {
-    loki_assert(writeTimes.front().time <= currentTime());
+    // This is a comparison between floating point numbers - dangerous!
+    double epsilon = 1e-10;
+    loki_assert(currentTime() - writeTimes.front().time > -epsilon);
 
     const stored_data data = base_class::read();
     writeTimes.pop_front();
@@ -80,8 +82,11 @@ public:
     base_class::write(data);
     
     // Record when this write should become visible to others.
+    // Subtract a tiny amount from the delay to avoid race conditions with the
+    // clock. If something happens on a clock edge and takes 1 cycle, we want it
+    // to be finished in time for the next clock edge.
     EventStatus status;
-    status.time = currentTime() + delay;
+    status.time = currentTime() + (delay - 0.01);
     status.triggered = false;
     writeTimes.push_back(status);
 
@@ -99,8 +104,10 @@ protected:
   // The buffer is empty if there is no data, or if there is data, but it is
   // not old enough to be read yet.
   virtual bool empty() const {
+    // This is a comparison between floating point numbers - dangerous!
+    double epsilon = 1e-10;
     return base_class::empty() ||
-           writeTimes.front().time > currentTime();
+           writeTimes.front().time - currentTime() > epsilon;
   }
 
 private:

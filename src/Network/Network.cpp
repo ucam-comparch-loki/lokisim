@@ -65,12 +65,15 @@ set<PortIndex> Network<T>::getDestinations(const ChannelID address) const {
 
 template<typename T>
 void Network<T>::sendData(PortIndex output) {
-  if (!clock.posedge())
-    next_trigger(clock.posedge_event());
-  else if (!outputs[output]->canWrite())
+//  if (!clock.posedge())
+//    next_trigger(clock.posedge_event());
+//  else
+  if (!outputs[output]->canWrite()) {
     next_trigger(outputs[output]->canWriteEvent());
-  else if (requests[output].empty())
+  }
+  else if (requests[output].empty()) {
     next_trigger(requests[output].newRequestEvent());
+  }
   else {
     request_list_t& req = requests[output];
 

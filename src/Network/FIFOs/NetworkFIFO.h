@@ -18,8 +18,6 @@
 #include "../../Utility/Instrumentation/Network.h"
 #include "../BandwidthMonitor.h"
 
-// TODO: add a bandwidth check to ensure there aren't too many reads/writes per
-// cycle. BandwidthMonitor class? dataAvailable and canWrite should return false.
 template<class T>
 class NetworkFIFO: public LokiComponent,
                    public network_inout_ifc<T>,
@@ -191,6 +189,8 @@ protected:
     if (empty())
       next_trigger(writeEvent());
     else if (!readBandwidth.bandwidthAvailable())
+      next_trigger(clock.posedge_event());
+    else if (!clock.posedge())
       next_trigger(clock.posedge_event());
     else {
       newHeadFlit.notify(sc_core::SC_ZERO_TIME);

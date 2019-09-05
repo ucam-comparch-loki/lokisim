@@ -75,10 +75,11 @@ void MemoryControllerTile::responseLoop() {
   }
   else if (iResponseFromMainMemory->canRead()) {
     Flit<Word> flit = iResponseFromMainMemory->read();
-    oResponse->write(flit);
 
     LOKI_LOG(3) << this->name() << " forwarding response from main memory: "
         << flit << endl;
+
+    oResponse->write(flit);
 
     // Wait for the clock edge rather than the next data arrival because there
     // may be other data lined up and ready to go immediately.
