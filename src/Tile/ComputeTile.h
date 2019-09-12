@@ -27,6 +27,7 @@
 #include "Network/L2LToBankRequests.h"
 #include "Network/L2LToBankRequests.h"
 #include "Network/MHLToBankResponses.h"
+#include "../Communication/ClockInverter.h"
 
 class Core;
 class MemoryBank;
@@ -155,6 +156,8 @@ private:
   // network with the local one. No other networks need this because their
   // buffers are inside other units (e.g. ICU, MHL).
   NetworkFIFO<Word>         creditBuffer;
+
+  ClockInverter             invertedClock;
 
 };
 

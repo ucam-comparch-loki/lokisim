@@ -180,6 +180,9 @@ void ComputeTile::makeComponents(const tile_parameters_t& params) {
 }
 
 void ComputeTile::wireUp(const tile_parameters_t& params) {
+
+  invertedClock(clock);
+
   uint instructionInputs = Core::numInstructionChannels;
   uint totalInputs = params.core.numInputChannels;
 
@@ -208,7 +211,7 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   for (uint i=0; i<memories.size(); i++) {
     MemoryBank& memory = memories[i];
 
-    memory.iClock(clock);
+    memory.iClock(invertedClock);
 
     coreToMemory.outputs[i](memory.iData);
     dataReturn.inputs[i](memory.oData);
@@ -271,7 +274,8 @@ ComputeTile::ComputeTile(const sc_module_name& name, const TileID& id,
     mhlToBankResponses("mhl_to_bank_resp", params),
     bankToL2LResponses("bank_to_l2l_resp", params),
     l2lToBankRequests("l2l_to_bank_req", params.numMemories),
-    creditBuffer("credit_buffer", 1) {
+    creditBuffer("credit_buffer", 1),
+    invertedClock("inverter") {
 
   makeComponents(params);
   wireUp(params);

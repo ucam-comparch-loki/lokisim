@@ -103,7 +103,7 @@ protected:
   // Update the value held in this wire (copied from sc_buffer).
   virtual void update() {
     // New for SystemC 2.3
-#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+#if (SC_VERSION_MAJOR >= 2) || ((SC_VERSION_MAJOR == 2) && (SC_VERSION_MINOR >= 3))
     sc_signal<T>::policy_type::update();
 #endif
 
@@ -113,7 +113,7 @@ protected:
       sc_signal<T>::m_change_event_p->notify(sc_core::SC_ZERO_TIME);
 
     // Changed for SystemC 2.3
-#if (SC_VERSION_MAJOR >= 2) && (SC_VERSION_MINOR >= 3)
+#if (SC_VERSION_MAJOR >= 2) || ((SC_VERSION_MAJOR == 2) && (SC_VERSION_MINOR >= 3))
     this->m_change_stamp = sc_signal<T>::simcontext()->change_stamp();
 #else
     this->m_delta = sc_core::sc_delta_count();

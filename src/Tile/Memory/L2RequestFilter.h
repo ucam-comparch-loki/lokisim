@@ -26,8 +26,6 @@ class L2RequestFilter: public LokiComponent {
 
 public:
 
-  ClockInput            iClock;           // Clock
-
   sc_port<l2_request_bank_ifc> iRequest;  // Input requests from the network
   RequestOutput         oRequest;         // Requests for this bank to serve
 

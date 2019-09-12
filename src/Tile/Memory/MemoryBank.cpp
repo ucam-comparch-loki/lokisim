@@ -420,8 +420,8 @@ void MemoryBank::processRequest(DecodedRequest& request) {
     LOKI_LOG(3) << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(request->getDestination(), request->getMemoryLevel()));
   }
-  else if (!iClock.negedge()) {
-    next_trigger(iClock.negedge_event());
+  else if (!iClock.posedge()) {
+    next_trigger(iClock.posedge_event());
   }
   else if (!request->complete()) {
     request->execute();
@@ -475,8 +475,8 @@ void MemoryBank::processFlush(DecodedRequest& request) {
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
-  if (!iClock.negedge())
-    next_trigger(iClock.negedge_event());
+  if (!iClock.posedge())
+    next_trigger(iClock.posedge_event());
   else if (canSendRequest()) {
     // This should all be tidied up when flushing is done using its own
     // MemoryOperation. The request's address may have changed since the flush
@@ -505,8 +505,8 @@ void MemoryBank::processRefill(DecodedRequest& request) {
   loki_assert_with_message(state == STATE_REFILL, "State = %d", state);
   loki_assert(request != NULL);
 
-  if (!iClock.negedge())
-    next_trigger(iClock.negedge_event());
+  if (!iClock.posedge())
+    next_trigger(iClock.posedge_event());
   else if (responseAvailable()) {
 
     // Don't store data locally if the request bypasses this cache.
@@ -839,7 +839,7 @@ void MemoryBank::copyToMissBuffer() {
     if (payload.getMetadata().endOfPacket)
       copyingToMissBuffer = false;
     else
-      next_trigger(iClock.negedge_event());
+      next_trigger(iClock.posedge_event());
   }
 }
 
@@ -981,7 +981,6 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   oRequest(outputReqQueue);
   oResponse(outputRespQueue);
 
-  l2RequestFilter.iClock(iClock);
   l2RequestFilter.oRequest(requestSig);
   l2RequestFilter.iRequest(iRequest);
 
@@ -993,9 +992,11 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   for (uint line=0; line<metadata.size(); line++) {
     metadata[line].valid = false;
   }
+}
 
+void MemoryBank::end_of_elaboration() {
   SC_METHOD(mainLoop);
-  sensitive << iClock.neg();
+  sensitive << iClock.pos();
   dont_initialize();
 
   SC_METHOD(updateIdle);

@@ -68,6 +68,8 @@ public:
              const memory_bank_parameters_t& params, uint numCores);
   ~MemoryBank();
 
+  void end_of_elaboration();
+
 //============================================================================//
 // Methods
 //============================================================================//
