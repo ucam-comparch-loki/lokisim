@@ -11,8 +11,8 @@
 #define SRC_TILE_MEMORYCONTROLLERTILE_H_
 
 #include "Tile.h"
-#include "../Network/FIFOs/NetworkFIFO.h"
 #include "../Network/Global/NetworkDeadEnd.h"
+#include "../Network/NetworkChannel.h"
 
 class MemoryControllerTile: public Tile {
 
@@ -78,7 +78,7 @@ private:
 private:
 
   // Requests from on-chip.
-  NetworkFIFO<Word>    incomingRequests;
+  NetworkChannel<Word> incomingRequests;
 
   // This tile is not connected to the data or credit networks.
   NetworkDeadEnd<Word> dataDeadEnd;

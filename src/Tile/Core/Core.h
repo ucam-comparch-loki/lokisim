@@ -15,7 +15,7 @@
 #ifndef CORE_H_
 #define CORE_H_
 
-#include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/NetworkChannel.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Utility/LokiVector.h"
 #include "ChannelMapTable.h"
@@ -217,7 +217,7 @@ private:
   ControlRegisters       cregs;
 
   // Credits received from the network.
-  NetworkFIFO<Word>      incomingCredits;
+  NetworkChannel<Word>   incomingCredits;
 
   // Debug connection to memory. Has zero latency.
   MagicMemoryConnection  magicMemoryConnection;

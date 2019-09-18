@@ -12,7 +12,7 @@
 #define SRC_TILE_MEMORY_L2LOGIC_H_
 
 #include "../../LokiComponent.h"
-#include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/NetworkChannel.h"
 #include "../../Utility/LokiVector.h"
 #include "../Network/L2LToBankRequests.h"
 
@@ -28,8 +28,6 @@ class L2Logic: public LokiComponent {
   typedef sc_port<network_sink_ifc<Word>> OutPort;
 
 public:
-
-  ClockInput                  clock;
 
   // Connections to the global networks.
 
@@ -83,7 +81,7 @@ private:
   const size_t numMemoryBanks;
 
   // Buffers/latches for network communications.
-  NetworkFIFO<Word> requestsFromNetwork;
+  NetworkChannel<Word> requestsFromNetwork;
 
   // Flag telling whether the next flit to arrive will be the start of a new
   // packet.

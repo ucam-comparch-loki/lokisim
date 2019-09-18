@@ -6,22 +6,12 @@
 # The values in this file override any in the source code, and are not compiled
 # into the program, so can be experimented with quickly. 
 
-parameter cores-per-tile 8
-parameter memories-per-tile 8
-parameter core-ipk-cache-size 64
-parameter core-ipk-cache-num-tags 16
 parameter core-ipk-fifo-size 64
-parameter core-scratchpad-size 256
-parameter compute-tile-rows 1
-parameter compute-tile-columns 1
-
-parameter memory-bank-size 8192
-parameter main-memory-size 268435456
 
 # L1 latency, including network
 parameter memory-bank-latency 3
 
 # Main memory latency, excluding network. Network latency will vary depending
 # on where the requesting core is on the chip.
-# 6 is the default to match the total latency seen in Veriloki.
-parameter main-memory-latency 6
+# 4 is the default to match the total latency seen in Veriloki.
+parameter main-memory-latency 4

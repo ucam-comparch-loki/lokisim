@@ -282,7 +282,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     pred("predicate"),
     channelMapTable("channel_map_table", params.channelMapTable, params.numInputChannels),
     cregs("cregs", ID),
-    incomingCredits("credits", 1, 100),  // More of a register than a FIFO
+    incomingCredits("credits"),  // More of a register than a FIFO
     magicMemoryConnection("magic_memory"),
     id(ID),
     stageReady("stageReady", 3) { // 4 stages => 3 links between stages
@@ -299,7 +299,6 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   iCredit(incomingCredits);
 
   cregs.clock(clock);
-  incomingCredits.clock(clock);
 
   // Create pipeline registers.
   pipelineRegs.push_back(

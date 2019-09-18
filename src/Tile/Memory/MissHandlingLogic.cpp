@@ -9,6 +9,7 @@
 #include "../ComputeTile.h"
 #include "../../Chip.h"
 #include "../../Datatype/MemoryRequest.h"
+#include "../../Types.h"
 #include "../../Utility/Assert.h"
 
 MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
@@ -20,8 +21,10 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
     iRequestFromBanks("iRequestFromBanks"),
     oResponseToBanks("oResponseToBanks"),
     directory(params.directory.size),
-    requestsFromBanks("requestsFromBanks", 1, 100),
+    requestsFromBanks("requestsFromBanks"),
     responsesFromNetwork("responsesFromNetwork", 1, 100) {
+
+  responsesFromNetwork.clock(clock);
 
   TileID memController = nearestMemoryController();
   directory.initialise(memController);
@@ -29,9 +32,6 @@ MissHandlingLogic::MissHandlingLogic(const sc_module_name& name,
   requestDestination = ChannelID();
   newLocalRequest = true;
   requestHeaderValid = false;
-
-  requestsFromBanks.clock(clock);
-  responsesFromNetwork.clock(clock);
 
   iResponseFromNetwork(responsesFromNetwork);
   iRequestFromBanks(requestsFromBanks);

@@ -10,16 +10,13 @@
 
 L2Logic::L2Logic(const sc_module_name& name, const tile_parameters_t& params) :
     LokiComponent(name),
-    clock("clock"),
     iRequestFromNetwork("iRequestFromNetwork"),
     oResponseToNetwork("oResponseToNetwork"),
     iResponseFromBanks("iResponseFromBanks"),
     oRequestToBanks("oRequestToBanks"),
     log2CacheLineSize(params.memory.log2CacheLineSize()),
     numMemoryBanks(params.numMemories),
-    requestsFromNetwork("requestsFromNetwork", 1, 100) {
-
-  requestsFromNetwork.clock(clock);
+    requestsFromNetwork("requestsFromNetwork") {
 
   rngState = 0x3F;  // Same seed as Verilog uses (see nextTargetBank()).
   randomBank = 0;

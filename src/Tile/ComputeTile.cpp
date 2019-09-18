@@ -226,10 +226,10 @@ void ComputeTile::wireUp(const tile_parameters_t& params) {
   }
 
   mhl.clock(clock);
+
   bankToMHLRequests.outputs[0](mhl.iRequestFromBanks);
   mhlToBankResponses.inputs[0](mhl.oResponseToBanks);
 
-  l2l.clock(clock);
   l2l.oRequestToBanks(l2lToBankRequests);
   bankToL2LResponses.outputs[0](l2l.iResponseFromBanks);
 

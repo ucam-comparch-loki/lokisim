@@ -420,9 +420,11 @@ void MemoryBank::processRequest(DecodedRequest& request) {
     LOKI_LOG(3) << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(request->getDestination(), request->getMemoryLevel()));
   }
-  else if (!iClock.posedge()) {
-    next_trigger(iClock.posedge_event());
-  }
+//  else if (!iClock.posedge()) {
+//    // FIXME: not sure this wait is needed now that all FIFOs are clocked.
+//    // Perhaps, if request->execute() tries to trigger again immediately.
+//    next_trigger(iClock.posedge_event());
+//  }
   else if (!request->complete()) {
     request->execute();
   }
@@ -475,9 +477,10 @@ void MemoryBank::processFlush(DecodedRequest& request) {
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
-  if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else if (canSendRequest()) {
+//  if (!iClock.posedge())
+//    next_trigger(iClock.posedge_event());
+//  else
+  if (canSendRequest()) {
     // This should all be tidied up when flushing is done using its own
     // MemoryOperation. The request's address may have changed since the flush
     // began, so use a local copy. (Temporary.)
@@ -505,9 +508,10 @@ void MemoryBank::processRefill(DecodedRequest& request) {
   loki_assert_with_message(state == STATE_REFILL, "State = %d", state);
   loki_assert(request != NULL);
 
-  if (!iClock.posedge())
-    next_trigger(iClock.posedge_event());
-  else if (responseAvailable()) {
+//  if (!iClock.posedge())
+//    next_trigger(iClock.posedge_event());
+//  else
+  if (responseAvailable()) {
 
     // Don't store data locally if the request bypasses this cache.
     if (request->needsForwarding()) {
@@ -839,7 +843,7 @@ void MemoryBank::copyToMissBuffer() {
     if (payload.getMetadata().endOfPacket)
       copyingToMissBuffer = false;
     else
-      next_trigger(iClock.posedge_event());
+      next_trigger(requestAvailableEvent());
   }
 }
 
@@ -914,9 +918,8 @@ void MemoryBank::updateIdle() {
 }
 
 cycle_count_t MemoryBank::artificialDelayRequired(const memory_bank_parameters_t& params) {
-  // The networks to/from memory take some time, and the memory bank itself
-  // currently has a minimum latency of 1 cycle.
-  return params.latency - EXTERNAL_LATENCY - 1;
+  // Account for the latency of the networks to/from memory.
+  return params.latency - EXTERNAL_LATENCY;
 }
 
 size_t MemoryBank::requestQueueSize(const memory_bank_parameters_t& params) {
@@ -953,7 +956,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
   inResponseQueue("inResponseQueue", params.inputFIFO),
   outputDataQueue("outputDataQueue", params.outputFIFO, artificialDelayRequired(params)),
   outputInstQueue("outputInstQueue", params.outputFIFO, artificialDelayRequired(params)),
-  outputReqQueue("outputReqQueue", requestQueueSize(params), requestQueueSize(params), artificialDelayRequired(params)),
+  outputReqQueue("outputReqQueue", requestQueueSize(params), requestQueueSize(params), 0), // No latency - can generate request header immediately
   outputRespQueue("outputRespQueue", params.outputFIFO, artificialDelayRequired(params)),
   data(params.size/BYTES_PER_WORD, 0),
   metadata(params.size/params.cacheLineSize),

@@ -15,6 +15,7 @@
 
 #include "../../LokiComponent.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/NetworkChannel.h"
 #include "../../Network/NetworkTypes.h"
 #include "../../Tile/Memory/Directory.h"
 
@@ -104,7 +105,7 @@ private:
   Directory directory;
 
   // Buffer/latches to hold requests and responses from the network.
-  NetworkFIFO<Word> requestsFromBanks;
+  NetworkChannel<Word> requestsFromBanks;
   NetworkFIFO<Word> responsesFromNetwork;
 
   // Flag telling whether the next flit to arrive will be the start of a new
