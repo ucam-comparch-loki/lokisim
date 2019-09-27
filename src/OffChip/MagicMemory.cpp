@@ -29,43 +29,43 @@ void MagicMemory::operate(MemoryOpcode opcode,
 
   switch (opcode) {
     case LOAD_W: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case LOAD_HW: {
-      Word result = mainMemory.readHalfword(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readHalfword(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case LOAD_B: {
-      Word result = mainMemory.readByte(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readByte(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
       break;
     }
 
     case STORE_W:
-      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
 
     case STORE_HW:
-      mainMemory.writeHalfword(address, data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeHalfword(address, data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
 
     case STORE_B:
-      mainMemory.writeByte(address, data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeByte(address, data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
 
     case IPK_READ: {
       MemoryAddr cursor = address;
 
       while (true) {
-        Instruction result = static_cast<Instruction>(mainMemory.readWord(cursor, MEMORY_SCRATCHPAD));
+        Instruction result = static_cast<Instruction>(mainMemory.readWord(cursor, MEMORY_SCRATCHPAD, true));
         cursor += BYTES_PER_WORD;
 
         // Stop fetching instructions at the end of the packet or the end
@@ -85,47 +85,47 @@ void MagicMemory::operate(MemoryOpcode opcode,
       MemoryAddr addr = address & ~0x1f;
       MemoryAddr end = addr + 0x20;
       for (; addr < end; addr += BYTES_PER_WORD)
-        mainMemory.writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+        mainMemory.writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 
     case LOAD_AND_ADD: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
-      mainMemory.writeWord(address, result.toUInt() + data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, result.toUInt() + data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 
     case LOAD_AND_OR: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
-      mainMemory.writeWord(address, result.toUInt() | data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, result.toUInt() | data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 
     case LOAD_AND_AND: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
-      mainMemory.writeWord(address, result.toUInt() & data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, result.toUInt() & data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 
     case LOAD_AND_XOR: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
-      mainMemory.writeWord(address, result.toUInt() ^ data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, result.toUInt() ^ data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 
     case EXCHANGE: {
-      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD);
+      Word result = mainMemory.readWord(address, MEMORY_SCRATCHPAD, true);
       NetworkData flit(result, returnChannel, true);
       chip().networkSendDataInternal(flit);
-      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD);
+      mainMemory.writeWord(address, data.toUInt(), MEMORY_SCRATCHPAD, true);
       break;
     }
 

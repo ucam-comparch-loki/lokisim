@@ -88,11 +88,6 @@ void Network<T>::sendData(PortIndex output) {
 
     req.remove(granted);
 
-    // TODO: repeat this step multiple times if bandwidth > 1.
-    // Stop as soon as buffer empties, packet ends, or bandwidth reached.
-    // Assert that until packet ends, all flits have same destination.
-    // Not valid for multicast, but current multicast networks can't generate
-    // more than one word per cycle and don't use packets.
     Flit<T> flit = readData(granted);
     Flit<T> previousFlit = outputs[output]->lastDataWritten();
     outputs[output]->write(flit);
@@ -100,15 +95,17 @@ void Network<T>::sendData(PortIndex output) {
     if (ENERGY_TRACE)
       Instrumentation::Network::crossbarOutput(previousFlit, flit);
 
-    if (flit.getMetadata().endOfPacket)
+    if (flit.getMetadata().endOfPacket) {
       arbiters[output].release();
-    else
-      arbiters[output].hold();
 
-    if (req.empty())
-      next_trigger(req.newRequestEvent());
-    else
+      // Assume we can only do arbitration once per cycle - we can let multiple
+      // flits through (if bandwidth available), but can't start another packet.
       next_trigger(clock.posedge_event());
+    }
+    else {
+      arbiters[output].hold();
+      // Default trigger: new request arrives
+    }
   }
 }
 

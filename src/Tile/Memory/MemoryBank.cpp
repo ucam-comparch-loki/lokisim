@@ -282,10 +282,9 @@ bool MemoryBank::checkReservation(ComponentID requester, MemoryAddr address, Mem
   return reservations.checkReservation(requester, address);
 }
 
-void MemoryBank::writeWord(SRAMAddress position, uint32_t value, MemoryAccessMode mode) {
-  checkAlignment(position, BYTES_PER_WORD);
+void MemoryBank::writeWord(SRAMAddress position, uint32_t value, MemoryAccessMode mode, bool magic) {
+  MemoryBase::writeWord(position, value, mode, magic);
 
-  data[position/BYTES_PER_WORD] = value;
   if (mode == MEMORY_CACHE)
     metadata[getLine(position)].dirty = true;
 
@@ -413,6 +412,9 @@ void MemoryBank::processRequest(DecodedRequest& request) {
       finishedRequestForNow(request);
     }
   }
+  else if (!canRead() || !canWrite()) {  // Check for available memory bandwidth
+    next_trigger(iClock.posedge_event());
+  }
   else if (!request->preconditionsMet()) {
     request->prepare();
   }
@@ -420,11 +422,6 @@ void MemoryBank::processRequest(DecodedRequest& request) {
     LOKI_LOG(3) << this->name() << " delayed request due to full output queue" << endl;
     next_trigger(canSendResponseEvent(request->getDestination(), request->getMemoryLevel()));
   }
-//  else if (!iClock.posedge()) {
-//    // FIXME: not sure this wait is needed now that all FIFOs are clocked.
-//    // Perhaps, if request->execute() tries to trigger again immediately.
-//    next_trigger(iClock.posedge_event());
-//  }
   else if (!request->complete()) {
     request->execute();
   }
@@ -477,10 +474,11 @@ void MemoryBank::processFlush(DecodedRequest& request) {
   // It is assumed that the header flit has already been sent. All that is left
   // is to send the cache line.
 
-//  if (!iClock.posedge())
-//    next_trigger(iClock.posedge_event());
-//  else
-  if (canSendRequest()) {
+  if (!canRead())
+    next_trigger(iClock.posedge_event());
+  else if (!canSendRequest())
+    next_trigger(canSendRequestEvent());
+  else {
     // This should all be tidied up when flushing is done using its own
     // MemoryOperation. The request's address may have changed since the flush
     // began, so use a local copy. (Temporary.)
@@ -500,18 +498,17 @@ void MemoryBank::processFlush(DecodedRequest& request) {
     NetworkRequest flit(data, id, PAYLOAD, endOfPacket);
     sendRequest(flit);
   }
-  else
-    next_trigger(canSendRequestEvent());
 }
 
 void MemoryBank::processRefill(DecodedRequest& request) {
   loki_assert_with_message(state == STATE_REFILL, "State = %d", state);
   loki_assert(request != NULL);
 
-//  if (!iClock.posedge())
-//    next_trigger(iClock.posedge_event());
-//  else
-  if (responseAvailable()) {
+  if (!canWrite())
+    next_trigger(iClock.posedge_event());
+  else if (!responseAvailable())
+    next_trigger(responseAvailableEvent());
+  else {
 
     // Don't store data locally if the request bypasses this cache.
     if (request->needsForwarding()) {
@@ -555,8 +552,6 @@ void MemoryBank::processRefill(DecodedRequest& request) {
         next_trigger(responseAvailableEvent());
     }
   }
-  else
-    next_trigger(responseAvailableEvent());
 }
 
 void MemoryBank::processForward(DecodedRequest& request) {
@@ -613,8 +608,10 @@ void MemoryBank::finishedRequestForNow(DecodedRequest& request) {
   state = STATE_IDLE;
   request.reset();
 
-  // Decode the next request immediately so it is ready to start next cycle.
-  next_trigger(sc_core::SC_ZERO_TIME);
+  // Can handle at most one request per clock cycle.
+  // TODO: could potentially decode the head flit in parallel with executing
+  // the previous request.
+  next_trigger(iClock.posedge_event());
 }
 
 bool MemoryBank::requestAvailable() const {
@@ -1006,7 +1003,7 @@ MemoryBank::MemoryBank(sc_module_name name, const ComponentID& ID, uint numBanks
 
 void MemoryBank::end_of_elaboration() {
   SC_METHOD(mainLoop);
-  sensitive << iClock.pos();
+  sensitive << iClock.pos();  // TODO: trigger immediately by default
   dont_initialize();
 
   SC_METHOD(updateIdle);
@@ -1070,9 +1067,9 @@ Word MemoryBank::readWordDebug(MemoryAddr addr) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    return readWord(position, MEMORY_CACHE);
+    return readWord(position, MEMORY_CACHE, true);
   else
-    return mainMemory->readWord(addr, MEMORY_SCRATCHPAD);
+    return mainMemory->readWord(addr, MEMORY_SCRATCHPAD, true);
 }
 
 Word MemoryBank::readByteDebug(MemoryAddr addr) {
@@ -1081,9 +1078,9 @@ Word MemoryBank::readByteDebug(MemoryAddr addr) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    return readByte(position, MEMORY_CACHE);
+    return readByte(position, MEMORY_CACHE, true);
   else
-    return mainMemory->readByte(addr, MEMORY_SCRATCHPAD);
+    return mainMemory->readByte(addr, MEMORY_SCRATCHPAD, true);
 }
 
 void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
@@ -1093,9 +1090,9 @@ void MemoryBank::writeWordDebug(MemoryAddr addr, Word data) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    writeWord(position, data.toUInt(), MEMORY_CACHE);
+    writeWord(position, data.toUInt(), MEMORY_CACHE, true);
   else
-    mainMemory->writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+    mainMemory->writeWord(addr, data.toUInt(), MEMORY_SCRATCHPAD, true);
 }
 
 void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
@@ -1104,9 +1101,9 @@ void MemoryBank::writeByteDebug(MemoryAddr addr, Word data) {
   SRAMAddress position = getPosition(addr, MEMORY_CACHE);
 
   if (contains(addr, position, MEMORY_CACHE))
-    writeByte(position, data.toUInt(), MEMORY_CACHE);
+    writeByte(position, data.toUInt(), MEMORY_CACHE, true);
   else
-    mainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD);
+    mainMemory->writeByte(addr, data.toUInt(), MEMORY_SCRATCHPAD, true);
 }
 
 const vector<uint32_t>& MemoryBank::dataArray() const {

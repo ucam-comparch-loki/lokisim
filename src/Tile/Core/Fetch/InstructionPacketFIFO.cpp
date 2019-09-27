@@ -22,6 +22,11 @@ const Instruction InstructionPacketFIFO::read() {
 }
 
 void InstructionPacketFIFO::write(const Instruction inst) {
+  // TODO: use a BandwidthMonitor for data written to the FIFO (like in
+  // NetworkFIFO). I haven't done this for now because all possible sources of
+  // data are currently NetworkFIFOs with their own BandwidthMonitors, and there
+  // can be at most one writer at a time.
+
   LOKI_LOG(3) << this->name() << " received Instruction:  " << inst << endl;
   parent().fifoInstructionArrived(inst);
 

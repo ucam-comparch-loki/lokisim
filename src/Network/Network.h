@@ -3,6 +3,10 @@
  *
  * Base class for all networks.
  *
+ * Data is sent through the network as soon as it is made available. It is the
+ * responsibility of connecting components to be consistent in when they make
+ * their data available, to ensure a fair arbitration between all data sources.
+ *
  *  Created on: 19 Mar 2019
  *      Author: db434
  */
@@ -17,9 +21,9 @@
 #include "../Utility/BlockingInterface.h"
 #include "../Utility/LokiVector.h"
 
+using std::set;
 using sc_core::sc_port;
 using std::ostream;
-using std::set;
 
 template<typename T>
 class Network : public LokiComponent, public BlockingInterface {
@@ -29,8 +33,7 @@ class Network : public LokiComponent, public BlockingInterface {
 //============================================================================//
 
 public:
-  // Data is sent through the crossbar on positive clock edges.
-  // TODO: instead, include an sc_event as a constructor argument.
+
   ClockInput clock;
 
   typedef sc_port<network_source_ifc<T>> InPort;
@@ -44,9 +47,6 @@ public:
 
 public:
   SC_HAS_PROCESS(Network);
-
-  // TODO: add bandwidth parameter, and send multiple flits per cycle if
-  // possible.
   Network(sc_module_name name, uint numInputs, uint numOutputs);
 
 //============================================================================//

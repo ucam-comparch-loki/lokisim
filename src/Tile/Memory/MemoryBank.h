@@ -1,8 +1,6 @@
 /*
  * MemoryBank.h
  *
- * Implementation #3.
- *
  * One bank of the banked L1/L2 cache system. A bank can be a member of an L1
  * cache or an L2 cache, but not both.
  *
@@ -124,7 +122,7 @@ public:
   virtual void preWriteCheck(const MemoryOperation& operation) const;
 
   // Override writeWord so we can update metadata (valid, dirty, etc.).
-  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode);
+  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode, bool magic=true);
 
   // Event triggered every time a request flit is sent.
   const sc_event& requestSentEvent() const;

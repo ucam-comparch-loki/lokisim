@@ -152,11 +152,17 @@ protected:
 
   // Read data from memory. The location is taken from the local sramAddress
   // variable.
-  uint32_t readMemory();
+  // A magic operation does not consume any memory bandwidth.
+  // e.g. A read-modify-write contains a read and a write, but should only count
+  // once.
+  uint32_t readMemory(bool magic=false);
 
   // Write data to memory. The location is taken from the local sramAddress
   // variable.
-  void writeMemory(uint32_t data);
+  // A magic operation does not consume any memory bandwidth.
+  // e.g. A read-modify-write contains a read and a write, but should only count
+  // once.
+  void writeMemory(uint32_t data, bool magic=false);
 
   // Returns whether the memory has a payload flit ready for this operation.
   virtual bool payloadAvailable() const;

@@ -60,10 +60,7 @@ void MemoryControllerTile::requestLoop() {
     LOKI_LOG(3) << this->name() << " forwarding request to main memory: "
         << flit << endl;
 
-    // TODO: allow multiple flits per cycle. #bandwidth
-    if (incomingRequests.canRead())
-      next_trigger(clock.posedge_event());
-    // Else, default trigger: new request arrival
+    // Default trigger: new request arrival
   }
 }
 
@@ -78,11 +75,6 @@ void MemoryControllerTile::responseLoop() {
         << flit << endl;
 
     oResponse->write(flit);
-
-    // Wait for the clock edge rather than the next data arrival because there
-    // may be other data lined up and ready to go immediately.
-    // TODO: allow multiple flits per cycle. #bandwidth
-    next_trigger(clock.posedge_event());
   }
-  // else default trigger: new data to send
+  // Default trigger: new data to send
 }

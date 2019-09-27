@@ -14,6 +14,7 @@
 
 #include "../Datatype/Instruction.h"
 #include "../LokiComponent.h"
+#include "../Network/BandwidthMonitor.h"
 #include "../Network/NetworkTypes.h"
 #include "../Utility/Assert.h"
 #include "../Utility/Warnings.h"
@@ -25,10 +26,12 @@ class MemoryBase : public LokiComponent {
 
 public:
 
-  MemoryBase(sc_module_name name, ComponentID id, size_t log2CacheLineSize) :
+  MemoryBase(sc_module_name name, ComponentID id, size_t log2CacheLineSize,
+             bandwidth_t maxBandwidth=1000) :
     LokiComponent(name),
     id(id),
-    log2CacheLineSize(log2CacheLineSize) {
+    log2CacheLineSize(log2CacheLineSize),
+    bandwidth(maxBandwidth) {
 
   }
 
@@ -103,50 +106,65 @@ public:
   virtual void preWriteCheck(const MemoryOperation& operation) const = 0;
 
   // Data access.
-  virtual uint32_t readWord(SRAMAddress position, MemoryAccessMode mode) const {
+  // A "magic" access does not consume any bandwidth, and happens instantly.
+  virtual uint32_t readWord(SRAMAddress position, MemoryAccessMode mode, bool magic=false) {
     checkAlignment(position, 4);
+
+    if (!magic)
+      bandwidth.recordEvent();
 
     return dataArray()[position/BYTES_PER_WORD];
   }
 
-  virtual uint32_t readHalfword(SRAMAddress position, MemoryAccessMode mode) const {
+  virtual uint32_t readHalfword(SRAMAddress position, MemoryAccessMode mode, bool magic=false) {
     checkAlignment(position, 2);
 
-    uint32_t fullWord = readWord(position & ~0x3, mode);
+    uint32_t fullWord = readWord(position & ~0x3, mode, magic);
     uint32_t offset = (position & 0x3) >> 1;
     return (fullWord >> (offset * 16)) & 0xFFFF;
   }
 
-  virtual uint32_t readByte(SRAMAddress position, MemoryAccessMode mode) const {
-    uint32_t fullWord = readWord(position & ~0x3, mode);
+  virtual uint32_t readByte(SRAMAddress position, MemoryAccessMode mode, bool magic=false) {
+    uint32_t fullWord = readWord(position & ~0x3, mode, magic);
     uint32_t offset = position & 0x3UL;
     return (fullWord >> (offset * 8)) & 0xFF;
   }
 
-  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
+  virtual void writeWord(SRAMAddress position, uint32_t data, MemoryAccessMode mode, bool magic=false) {
     checkAlignment(position, 4);
+
+    if (!magic)
+      bandwidth.recordEvent();
 
     dataArray()[position/BYTES_PER_WORD] = data;
   }
 
-  virtual void writeHalfword(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
+  virtual void writeHalfword(SRAMAddress position, uint32_t data, MemoryAccessMode mode, bool magic=false) {
     checkAlignment(position, 2);
 
-    uint32_t oldData = readWord(position & ~0x3, mode);
+    uint32_t oldData = readWord(position & ~0x3, mode, true);
     uint32_t offset = (position >> 1) & 0x1;
     uint32_t mask = 0xFFFF << (offset * 16);
     uint32_t newData = (~mask & oldData) | (mask & (data << (16*offset)));
 
-    writeWord(position & ~0x3, newData, mode);
+    writeWord(position & ~0x3, newData, mode, magic);
   }
 
-  virtual void writeByte(SRAMAddress position, uint32_t data, MemoryAccessMode mode) {
-    uint32_t oldData = readWord(position & ~0x3, mode);
+  virtual void writeByte(SRAMAddress position, uint32_t data, MemoryAccessMode mode, bool magic=false) {
+    uint32_t oldData = readWord(position & ~0x3, mode, true);
     uint32_t offset = position & 0x3;
     uint32_t mask = 0xFF << (offset * 8);
     uint32_t newData = (~mask & oldData) | (mask & (data << (8*offset)));
 
-    writeWord(position & ~0x3, newData, mode);
+    writeWord(position & ~0x3, newData, mode, magic);
+  }
+
+  bool canRead() const {
+    return bandwidth.bandwidthAvailable();
+  }
+
+  bool canWrite() const {
+    return bandwidth.bandwidthAvailable();
   }
 
   // Memory address manipulation. Assumes fixed cache line size of 32 bytes.
@@ -213,6 +231,12 @@ protected:
   virtual vector<uint32_t>& dataArray() = 0;
 
   const size_t log2CacheLineSize; // In bytes
+
+private:
+
+  // Reads/writes possible in one cycle. A subword write is treated as a single
+  // operation.
+  BandwidthMonitor bandwidth;
 
 };
 

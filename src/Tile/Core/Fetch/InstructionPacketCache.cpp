@@ -132,6 +132,11 @@ const sc_event& InstructionPacketCache::writeEvent() const {
 }
 
 void InstructionPacketCache::write(const Flit<Word>& data) {
+  // TODO: use a BandwidthMonitor for data written to the cache (like in
+  // NetworkFIFO). I haven't done this for now because all possible sources of
+  // data are currently NetworkFIFOs with their own BandwidthMonitors, and there
+  // can be at most one writer at a time.
+
   Instrumentation::Latency::coreReceivedResult(parent().id(), data);
 
   // Strip off the network address and store the instruction.

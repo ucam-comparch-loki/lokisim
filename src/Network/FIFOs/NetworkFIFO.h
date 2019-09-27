@@ -190,6 +190,8 @@ protected:
       next_trigger(writeEvent());
     else if (!readBandwidth.bandwidthAvailable())
       next_trigger(clock.posedge_event());
+    // TODO: this won't work when reading multiple flits in one cycle, but is
+    // necessary when new data arrives.
     else if (!clock.posedge())
       next_trigger(clock.posedge_event());
     else {

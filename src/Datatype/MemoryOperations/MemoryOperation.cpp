@@ -159,11 +159,11 @@ bool MemoryOperation::oneIteration() {
   return false;
 }
 
-uint32_t MemoryOperation::readMemory() {
+uint32_t MemoryOperation::readMemory(bool magic) {
   assert(readsMemory);
 
   SRAMAddress fullAddress = getSRAMAddress();
-  uint32_t result = memory->readWord(fullAddress & ~0x3, getAccessMode());
+  uint32_t result = memory->readWord(fullAddress & ~0x3, getAccessMode(), magic);
 
   // If we want less than a full word, mask and shift the piece we want.
   if (dataSize < 4) {
@@ -179,7 +179,7 @@ uint32_t MemoryOperation::readMemory() {
   return result;
 }
 
-void MemoryOperation::writeMemory(uint32_t data) {
+void MemoryOperation::writeMemory(uint32_t data, bool magic) {
   assert(writesMemory);
 
   SRAMAddress fullAddress = getSRAMAddress();
@@ -187,7 +187,7 @@ void MemoryOperation::writeMemory(uint32_t data) {
   // If writing less than a full word, read the rest of the word and insert
   // this piece before writing it back.
   if (dataSize < 4) {
-    uint32_t oldData = memory->readWord(fullAddress & ~0x3, getAccessMode());
+    uint32_t oldData = memory->readWord(fullAddress & ~0x3, getAccessMode(), true);
     uint offset = (fullAddress & 0x3) / dataSize;
 
     uint32_t mask = (1 << (dataSize*8)) - 1;
@@ -197,7 +197,7 @@ void MemoryOperation::writeMemory(uint32_t data) {
   }
 
   memory->printOperation(metadata.opcode, getAddress(), data);
-  memory->writeWord(fullAddress & ~0x3, data, getAccessMode());
+  memory->writeWord(fullAddress & ~0x3, data, getAccessMode(), magic);
 }
 
 bool MemoryOperation::payloadAvailable() const {
