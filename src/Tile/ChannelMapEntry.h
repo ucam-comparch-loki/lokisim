@@ -209,6 +209,7 @@ public:
     os << c.getDestination();
 
     if (c.memoryView().isMemory) {
+      os << " | group size " << c.getMemoryGroupSize();
       if (c.memoryView().scratchpadL1) os << " | L1 scratchpad";
       if (c.memoryView().l1Skip)       os << " | skip L1";
       if (c.memoryView().l2Skip)       os << " | skip L2";
