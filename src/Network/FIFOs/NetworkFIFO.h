@@ -190,9 +190,8 @@ protected:
       next_trigger(writeEvent());
     else if (!readBandwidth.bandwidthAvailable())
       next_trigger(clock.posedge_event());
-    // TODO: this won't work when reading multiple flits in one cycle, but is
-    // necessary when new data arrives.
-    else if (!clock.posedge())
+    // The first flit each cycle should appear on the clock edge.
+    else if ((readBandwidth.bandwidthConsumed() == 0) && !clock.posedge())
       next_trigger(clock.posedge_event());
     else {
       newHeadFlit.notify(sc_core::SC_ZERO_TIME);

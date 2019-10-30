@@ -51,6 +51,14 @@ public:
       eventsThisCycle++;
   }
 
+  // Return how much bandwidth has already been used this cycle.
+  bandwidth_t bandwidthConsumed() const {
+    if (Instrumentation::currentCycle() == lastEventTime)
+      return eventsThisCycle;
+    else
+      return 0;
+  }
+
 //============================================================================//
 // Local state
 //============================================================================//
