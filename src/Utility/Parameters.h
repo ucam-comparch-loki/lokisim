@@ -177,8 +177,6 @@ extern parameter  CORES_PER_TILE;
 // If set to 1, all memory operations complete instantaneously.
 extern parameter  MAGIC_MEMORY;
 
-#define MULTICAST_NETWORK_SIZE    (CORES_PER_TILE + ACCELERATORS_PER_TILE)
-
 //============================================================================//
 // Methods
 //============================================================================//

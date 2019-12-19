@@ -57,16 +57,10 @@ protected:
 private:
 
   // The number of output ports which lead to the same core.
-  const uint outputsPerCore;
+  const uint outputsPerCore, outputsPerAccelerator;
 
   // Number of cores reachable through outputs.
-  const uint outputCores;
-
-  // The number of output ports which lead to the same accelerator.
-  const uint outputsPerAccelerator;
-
-  // Number of accelerators reachable through outputs.
-  const uint outputAccelerators;
+  const uint outputCores, outputAccelerators;
 
 };
 

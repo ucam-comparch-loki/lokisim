@@ -40,6 +40,7 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, uint numMemoryBank
 
   in1.clock(clock);           in2.clock(clock);
   out.clock(clock);
+
   iMemory[0](in1.iResponse);  oMemory[0](in1.oRequest);
   iMemory[1](in2.iResponse);  oMemory[1](in2.oRequest);
   iMemory[2](out.iResponse);  oMemory[2](out.oRequest);

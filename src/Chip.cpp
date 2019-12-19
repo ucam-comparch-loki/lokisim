@@ -10,7 +10,6 @@
 #include <sstream>
 
 #include "Chip.h"
-#include "Tile/Tile.h"
 #include "Tile/AcceleratorTile.h"
 #include "Tile/ComputeTile.h"
 #include "Tile/EmptyTile.h"
@@ -222,7 +221,6 @@ void Chip::makeComponents(const chip_parameters_t& params) {
       
       if (col > 0 && col <= params.numComputeTiles.width &&
           row > 0 && row <= params.numComputeTiles.height) {
-
         if (params.tile.numAccelerators > 0)
           t = new AcceleratorTile(name.str().c_str(), tileID, params.tile);
         else

@@ -7,6 +7,7 @@
 
 #include "CoreMulticast.h"
 #include "../../Utility/Assert.h"
+#include "../Accelerator/Accelerator.h"
 
 using sc_core::sc_gen_unique_name;
 using std::set;
@@ -15,12 +16,11 @@ CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :
     Network<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
     outputsPerCore(params.core.numInputChannels),
+    outputsPerAccelerator(Accelerator::numMulticastInputs),
     outputCores(params.numCores),
-    outputsPerAccelerator(1),
     outputAccelerators(params.numAccelerators) {
-	// Nothing
+  // Nothing
 }
-
 
 PortIndex CoreMulticast::getDestination(const ChannelID address) const {
   // Single destination method should never be used.
@@ -33,18 +33,13 @@ set<PortIndex> CoreMulticast::getDestinations(const ChannelID address) const {
 
   set<PortIndex> destinations;
 
-  for (uint component=0; component<outputCores+outputAccelerators; component++) {
-    if ((address.coremask >> component) & 1) {
-      // Sending to a core.
-      if (component < outputCores)
-        destinations.insert(component*outputsPerCore + address.channel);
-      // Sending to an accelerator.
-      else
-        destinations.insert(outputCores*outputsPerCore +
-                            (component - outputCores) * outputsPerAccelerator +
-                            address.channel);
-    }
-  }
+  for (uint core=0; core<outputCores; core++)
+    if ((address.coremask >> core) & 1)
+      destinations.insert(core*outputsPerCore + address.channel);
+  for (uint acc=0; acc<outputAccelerators; acc++)
+    if ((address.coremask >> (acc + outputCores)) & 1)
+      destinations.insert(outputCores*outputsPerCore +
+                          acc*outputsPerAccelerator + address.channel);
 
   return destinations;
 }

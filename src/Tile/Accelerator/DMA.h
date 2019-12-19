@@ -14,6 +14,7 @@
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/LokiVector2D.h"
+#include "../MemoryBankSelector.h"
 #include "AcceleratorTypes.h"
 #include "CommandQueue.h"
 #include "ConvolutionAlgorithm.h"
