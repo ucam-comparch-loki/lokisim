@@ -138,10 +138,4 @@ typedef struct {
   uint32_t notificationAddress;
 } conv_parameters_t;
 
-
-typedef struct {
-  size_t width;
-  size_t height;
-} size2d_t;
-
 #endif /* SRC_TILE_ACCELERATOR_ACCELERATORTYPES_H_ */

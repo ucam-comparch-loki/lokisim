@@ -141,8 +141,6 @@ protected:
   friend class L2Logic;
   friend class IntertileUnit;
 
-private:
-
   // Subnetworks.
   CoreMulticast             coreToCore;
   ForwardCrossbar           coreToMemory;
@@ -159,50 +157,7 @@ private:
   // buffers are inside other units (e.g. ICU, MHL).
   NetworkFIFO<Word>         creditBuffer;
 
-<<<<<<< Upstream, based on origin/master
   ClockInverter             invertedClock;
-=======
-//============================================================================//
-// Signals (wires)
-//============================================================================//
-
-protected:
-
-  LokiVector<DataSignal>    dataToCores,              dataFromMemory,
-                            instructionsToCores,      instructionsFromMemory,
-                            multicastFromCores;
-  LokiVector2D<DataSignal>  multicastToCores;
-  LokiVector<RequestSignal> requestsToMemory,         requestsFromCores;
-
-  LokiVector2D<ReadySignal> readyDataFromCores,       readyDataFromMemory;
-
-  LokiVector<CreditSignal>  creditsToCores,           creditsFromCores;
-  LokiVector2D<ReadySignal> readyCreditFromCores;
-
-  // TODO remove global signals and combine with coreToMemory and memoryToCores.
-  LokiVector<DataSignal>    globalDataToCores,        globalDataFromCores;
-
-  // Signals allowing arbitration requests to be made for cores/memories/routers.
-  // Currently the signals are written using a function call, but they can
-  // be removed if we set up a proper SystemC channel connection.
-  // Addressed using coreRequests[requester][destination]
-  LokiVector2D<ArbiterRequestSignal> coreToMemRequests,
-                                     dataReturnRequests, instructionReturnRequests;
-  LokiVector2D<ArbiterGrantSignal>   coreToMemGrants,
-                                     dataReturnGrants,   instructionReturnGrants;
-
-  LokiVector<RequestSignal> l2RequestFromMemory;
-  RequestSignal             l2RequestToMemory;
-  sc_signal<MemoryIndex>    l2RequestTarget;
-  LokiVector<sc_signal<bool>> l2ClaimRequest;
-  LokiVector<sc_signal<bool>> l2DelayRequest;
-  sc_signal<bool>           l2RequestClaimed;
-  sc_signal<bool>           l2RequestDelayed;
-
-  LokiVector<ResponseSignal> l2ResponseFromMemory;
-  ResponseSignal            l2ResponseToMemory;
-  sc_signal<MemoryIndex>    l2ResponseTarget;
->>>>>>> 6a6e491 Connect Accelerator to local multicast network.
 
 };
 

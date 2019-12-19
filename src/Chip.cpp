@@ -220,17 +220,13 @@ void Chip::makeComponents(const chip_parameters_t& params) {
 
       Tile* t;
       
-      if (col > 0 && col <= COMPUTE_TILE_COLUMNS &&
-          row > 0 && row <= COMPUTE_TILE_ROWS) {
+      if (col > 0 && col <= params.numComputeTiles.width &&
+          row > 0 && row <= params.numComputeTiles.height) {
 
-        if (ACCELERATORS_PER_TILE > 0)
-          t = new AcceleratorTile(name.str().c_str(), tileID);
+        if (params.tile.numAccelerators > 0)
+          t = new AcceleratorTile(name.str().c_str(), tileID, params.tile);
         else
-          t = new ComputeTile(name.str().c_str(), tileID);
-
-        // Some ComputeTile-specific connections.
-        ((ComputeTile*)t)->fastClock(fastClock);
-        ((ComputeTile*)t)->slowClock(slowClock);
+          t = new ComputeTile(name.str().c_str(), tileID, params.tile);
       }
       else if (memoryControllerPositions.find(TileID(col,row)) != memoryControllerPositions.end()) {
         t = new MemoryControllerTile(name.str().c_str(), tileID);

@@ -10,14 +10,17 @@
 
 ParameterReceiver::ParameterReceiver(sc_module_name name) :
     LokiComponent(name),
+    clock("clock"),
     iParameter("iParameter"),
-    oReady("oReady") {
+    paramBuffer("buf", 1, 100) {
 
   parametersReceived = 0;
-  oReady.initialize(true);
+
+  paramBuffer.clock(clock);
+  iParameter(paramBuffer);
 
   SC_METHOD(receiveParameter);
-  sensitive << iParameter;
+  sensitive << paramBuffer.canReadEvent();
   dont_initialize();
 
 }
@@ -37,11 +40,9 @@ const sc_event& ParameterReceiver::allParametersArrived() const {
 
 void ParameterReceiver::receiveParameter() {
   loki_assert(!hasAllParameters());
-  loki_assert(iParameter.valid());
-  loki_assert(oReady.read());
+  loki_assert(paramBuffer.canRead());
 
-  uint32_t parameter = iParameter.read();
-  iParameter.ack();
+  uint32_t parameter = paramBuffer.read().payload().toUInt();
 
   // Add parameter to struct. (Using a naughty method so I don't need to care
   // about the contents of the struct.)

@@ -775,14 +775,9 @@ void MemoryBank::sendResponse(NetworkResponse response, MemoryLevel level) {
 
   switch (level) {
     case MEMORY_L1:
-<<<<<<< Upstream, based on origin/master
-      if (response.channelID().channel < Core::numInstructionChannels) {
-        LOKI_LOG(3) << this->name() << " buffering instruction " << response << endl;
-=======
       if (parent().isCore(response.channelID().component) &&
           response.channelID().channel < Core::numInstructionChannels) {
-        LOKI_LOG << this->name() << " buffering instruction " << response << endl;
->>>>>>> ecad10f Give Accelerator proper network and memory connections.
+        LOKI_LOG(3) << this->name() << " buffering instruction " << response << endl;
         outputInstQueue.write(response);
       }
       else {

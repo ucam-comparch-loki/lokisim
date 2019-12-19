@@ -12,6 +12,8 @@
 #define SRC_TILE_ACCELERATOR_PARAMETERRECEIVER_H_
 
 #include "../../LokiComponent.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/Interface.h"
 #include "../../Network/NetworkTypes.h"
 #include "AcceleratorTypes.h"
 
@@ -23,11 +25,10 @@ class ParameterReceiver: public LokiComponent {
 
 public:
 
-  // Receive parameters for the next computation.
-  loki_in<uint32_t> iParameter;
+  ClockInput clock;
 
-  // Signal whether this component is ready to receive a new parameter.
-  ReadyOutput oReady;
+  // Receive parameters for the next computation.
+  sc_port<network_sink_ifc<Word>> iParameter;
 
 
 //============================================================================//
@@ -71,6 +72,8 @@ private:
 
   conv_parameters_t parameters;
   int parametersReceived;
+
+  NetworkFIFO<Word> paramBuffer;
 
   sc_event allParametersArrivedEvent;
 

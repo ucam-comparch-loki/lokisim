@@ -270,15 +270,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
            size_t numMulticastOutputs, size_t numMemories) :
     LokiComponent(name),
     clock("clock"),
-<<<<<<< Upstream, based on origin/master
     iData("iData", params.numInputChannels),
     oMemory("oMemory"),
-=======
-    iInstruction("iInstruction"),
-    iData("iData"),
-    oRequest("oRequest"),
-    iMulticast(MULTICAST_NETWORK_SIZE, "iMulticast"),
->>>>>>> 6a6e491 Connect Accelerator to local multicast network.
     oMulticast("oMulticast"),
     iCredit("iCredit"),
     id(ID),

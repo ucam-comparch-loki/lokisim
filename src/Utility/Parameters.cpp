@@ -419,7 +419,7 @@ size_t tile_parameters_t::mcastNetInputs() const {
 }
 
 size_t tile_parameters_t::mcastNetOutputs() const {
-  return numCores + numAccelerators;
+  return numCores * core.numInputChannels + numAccelerators;
 }
 
 size_t tile_parameters_t::totalComponents() const {
@@ -452,7 +452,7 @@ size_t chip_parameters_t::totalComponents() const {
 
 // Change a parameter value. Only valid before the SystemC components have
 // been instantiated.
-void Parameters::parseParameter(const string &name, const string &value,
+void Parameters::parseParameter(string name, string value,
                                 chip_parameters_t& params) {
   initialiseParameters();
 

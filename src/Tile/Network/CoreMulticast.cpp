@@ -15,8 +15,10 @@ CoreMulticast::CoreMulticast(const sc_module_name name,
                              const tile_parameters_t& params) :
     Network<Word>(name, params.mcastNetInputs(), params.mcastNetOutputs()),
     outputsPerCore(params.core.numInputChannels),
-    outputCores(params.numCores) {
-	// #rebase: need to account for accelerators
+    outputCores(params.numCores),
+    outputsPerAccelerator(1),
+    outputAccelerators(params.numAccelerators) {
+	// Nothing
 }
 
 
@@ -31,9 +33,18 @@ set<PortIndex> CoreMulticast::getDestinations(const ChannelID address) const {
 
   set<PortIndex> destinations;
 
-  for (uint core=0; core<outputCores; core++)
-    if ((address.coremask >> core) & 1)
-      destinations.insert(core*outputsPerCore + address.channel);
+  for (uint component=0; component<outputCores+outputAccelerators; component++) {
+    if ((address.coremask >> component) & 1) {
+      // Sending to a core.
+      if (component < outputCores)
+        destinations.insert(component*outputsPerCore + address.channel);
+      // Sending to an accelerator.
+      else
+        destinations.insert(outputCores*outputsPerCore +
+                            (component - outputCores) * outputsPerAccelerator +
+                            address.channel);
+    }
+  }
 
   return destinations;
 }

@@ -70,6 +70,8 @@ class MemoryInterface : public LokiComponent, public BlockingInterface {
 
 public:
 
+  ClockInput clock;
+
   typedef sc_port<network_sink_ifc<Word>> InPort;
   typedef sc_port<network_source_ifc<Word>> OutPort;
 
@@ -136,6 +138,8 @@ private:
   void processResponse();
 
   DMA& parent() const;
+
+  const ComponentID& id() const;
 
 
 //============================================================================//
