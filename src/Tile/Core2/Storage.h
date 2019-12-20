@@ -47,6 +47,9 @@ public:
   const T& debugRead(RegisterIndex reg) {
     return data[reg];
   }
+  const T& debugRead(RegisterIndex reg) const {
+    return data[reg];
+  }
 
   // Write which bypasses all normal processes and completes immediately.
   void debugWrite(RegisterIndex reg, T value) {

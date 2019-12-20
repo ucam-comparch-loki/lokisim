@@ -255,6 +255,8 @@ void SelchHandler::respondToInstruction(DecodedInstruction inst) const {
 }
 
 const sc_event& SelchHandler::coreFinishedEvent() const {
+  // TODO: may also need to trigger immediately if data was already there.
+  //       Need a separate selchEvent()?
   // TODO: check whether data arrived on any of the specified channels.
   return core().networkDataArrivedEvent();
 }

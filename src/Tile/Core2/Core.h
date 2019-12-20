@@ -16,6 +16,11 @@
 #include "../Core/Fetch/InstructionPacketCache.h"
 #include "../Core/Fetch/InstructionPacketFIFO.h"
 #include "../Core/MagicMemoryConnection.h"
+#include "FetchStage.h"
+#include "DecodeStage.h"
+#include "ExecuteStage.h"
+#include "WriteStage.h"
+#include "FIFOArray.h"
 #include "Storage.h"
 
 class ComputeTile;
@@ -108,6 +113,22 @@ public:
   virtual bool inputFIFOHasData(ChannelIndex fifo) const;
 
 
+  const sc_event& readRegistersEvent() const; // Need to specify port?
+  const sc_event& wroteRegistersEvent() const; // Need to specify port?
+  const sc_event& computeFinishedEvent() const;
+  const sc_event& readCMTEvent() const;
+  const sc_event& wroteCMTEvent() const;
+  const sc_event& readScratchpadEvent() const;
+  const sc_event& wroteScratchpadEvent() const;
+  const sc_event& readCRegsEvent() const;
+  const sc_event& wroteCRegsEvent() const;
+  const sc_event& readPredicateEvent() const;
+  const sc_event& wrotePredicateEvent() const;
+  const sc_event& networkDataArrivedEvent() const;
+  const sc_event& sentNetworkDataEvent() const;
+  const sc_event& creditArrivedEvent() const;
+
+
   // Debug interface which bypasses instrumentation, etc. and completes
   // instantly.
   int32_t debugRegisterRead(RegisterIndex reg);
@@ -135,7 +156,10 @@ public:
 private:
 
   // Pipeline stages.
-
+  FetchStage             fetchStage;
+  DecodeStage            decodeStage;
+  ExecuteStage           executeStage;
+  WriteStage             writeStage;
 
   // Storage structures.
   RegisterFile           registers;

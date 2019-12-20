@@ -7,8 +7,8 @@ CPP_SRCS += \
 ../src/Tile/Core2/Core.cpp \
 ../src/Tile/Core2/DecodeStage.cpp \
 ../src/Tile/Core2/ExecuteStage.cpp \
+../src/Tile/Core2/FIFOArray.cpp \
 ../src/Tile/Core2/FetchStage.cpp \
-../src/Tile/Core2/InputFIFOs.cpp \
 ../src/Tile/Core2/InstructionHandler.cpp \
 ../src/Tile/Core2/PipelineStage.cpp \
 ../src/Tile/Core2/Storage.cpp \
@@ -19,8 +19,8 @@ OBJS += \
 ./src/Tile/Core2/Core.o \
 ./src/Tile/Core2/DecodeStage.o \
 ./src/Tile/Core2/ExecuteStage.o \
+./src/Tile/Core2/FIFOArray.o \
 ./src/Tile/Core2/FetchStage.o \
-./src/Tile/Core2/InputFIFOs.o \
 ./src/Tile/Core2/InstructionHandler.o \
 ./src/Tile/Core2/PipelineStage.o \
 ./src/Tile/Core2/Storage.o \
@@ -31,8 +31,8 @@ CPP_DEPS += \
 ./src/Tile/Core2/Core.d \
 ./src/Tile/Core2/DecodeStage.d \
 ./src/Tile/Core2/ExecuteStage.d \
+./src/Tile/Core2/FIFOArray.d \
 ./src/Tile/Core2/FetchStage.d \
-./src/Tile/Core2/InputFIFOs.d \
 ./src/Tile/Core2/InstructionHandler.d \
 ./src/Tile/Core2/PipelineStage.d \
 ./src/Tile/Core2/Storage.d \

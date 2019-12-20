@@ -21,6 +21,10 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     oMulticast("oMulticast"),
     iCredit("iCredit"),
     id(ID),
+    fetchStage("fetch"),
+    decodeStage("decode"),
+    executeStage("execute"),
+    writeStage("write"),
     registers("regs", params.registerFile),
     scratchpad("scratchpad", params.scratchpad),
     channelMapTable("cmt", params.channelMapTable),
@@ -43,7 +47,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   iData[0](iInstFIFO);
   iData[1](iInstCache);
   for (uint i=2; i<params.numInputChannels; i++)
-    iData[i](iDataFIFOs.iData[i]);
+    iData[i](iDataFIFOs.iData[i-2]);
   iCredit(iCreditFIFO);
   oMemory(oDataFIFOs.oMemory);
   oMulticast(oDataFIFOs.oMulticast);
@@ -128,7 +132,7 @@ void Core::endRemoteExecution() {
 
 ChannelID Core::getNetworkDestination(EncodedCMTEntry channelMap,
                                       MemoryAddr address) const {
-  // TODO
+  // TODO - I think MemoryBankSelector is in another branch?
 }
 
 bool Core::inputFIFOHasData(ChannelIndex fifo) const {
@@ -160,8 +164,8 @@ ComputeTile& Core::tile() const {
 
 ComponentID Core::getSystemCallMemory(MemoryAddr address) const {
   // If accessing a group of memories, determine which bank to access.
-  // Default memory channel is 1.
-  ChannelMapEntry& channelMap = channelMapTable.debugRead(1);
+  // Default data memory channel is 1.
+  const ChannelMapEntry& channelMap = channelMapTable.debugRead(1);
 
   uint increment = channelMap.computeAddressIncrement(address);
   return ComponentID(id.tile,
