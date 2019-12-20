@@ -87,6 +87,9 @@ public:
   virtual uint coreIndex(ComponentID id) const;
   virtual uint memoryIndex(ComponentID id) const;
 
+  uint globalCoreIndex(ComponentID id) const;
+  uint globalMemoryIndex(ComponentID id) const;
+
   // Store the given instructions or data into the component at the given index.
   virtual void storeInstructions(vector<Word>& instructions, const ComponentID& component);
   virtual void storeData(const DataBlock& data);
@@ -117,10 +120,6 @@ private:
 
   void makeComponents(const tile_parameters_t& params);
   void wireUp(const tile_parameters_t& params);
-
-  // Allow components to find their position on the chip. Only used for debug.
-  uint globalCoreIndex(ComponentID id) const;
-  uint globalMemoryIndex(ComponentID id) const;
 
 //============================================================================//
 // Components

@@ -102,6 +102,7 @@ public:
   ChannelMapTable(sc_module_name name,
                   const channel_map_table_parameters_t& params);
   void write(RegisterIndex index, EncodedCMTEntry value);
+  uint creditsAvailable(ChannelIndex channel) const;
 };
 
 class ControlRegisters : public RegisterFileBase<int32_t> {

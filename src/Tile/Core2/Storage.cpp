@@ -58,8 +58,12 @@ ChannelMapTable::ChannelMapTable(sc_module_name name,
 }
 
 void ChannelMapTable::write(RegisterIndex index, EncodedCMTEntry value) {
-  // TODO: ChannelMapEntry contains lots of state. Can't update all of it here?
-  RegisterFileBase<ChannelMapEntry>::write(index, value);
+  // Bypass the usual write mechanism so the encoded data is decoded.
+  data[index].write(value);
+}
+
+uint ChannelMapTable::creditsAvailable(ChannelIndex channel) const {
+  return data[channel].numCredits();
 }
 
 

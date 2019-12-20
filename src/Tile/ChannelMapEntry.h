@@ -139,6 +139,7 @@ public:
 
   bool canSend() const;
   bool haveNCredits(uint n) const;
+  uint numCredits() const;
   void removeCredit();
   void addCredits(uint numCredits);
 

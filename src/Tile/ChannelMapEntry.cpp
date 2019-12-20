@@ -63,25 +63,29 @@ bool ChannelMapEntry::useCredits() const {
 }
 
 bool ChannelMapEntry::canSend() const {
-  return !useCredits() || (globalView().credits > 0);
+  return !useCredits() || (numCredits() > 0);
 }
 
 bool ChannelMapEntry::haveNCredits(uint n) const {
-  return !useCredits() || (globalView().credits >= n);
+  return !useCredits() || (numCredits() >= n);
+}
+
+uint ChannelMapEntry::numCredits() const {
+  return globalView().credits;
 }
 
 void ChannelMapEntry::removeCredit() {
   if (useCredits()) {
-    assert(globalView().credits > 0);
+    assert(numCredits() > 0);
     incrementCredits(-1);
   }
 }
 
-void ChannelMapEntry::addCredits(uint numCredits) {
+void ChannelMapEntry::addCredits(uint credits) {
   // If we're using credits, increment the credit counter, as normal.
   if (useCredits() && globalView().acquired) {
-    incrementCredits(numCredits);
-    assert(globalView().credits > 0);
+    incrementCredits(credits);
+    assert(numCredits() > 0);
 
     creditArrived_.notify();
   }
@@ -89,7 +93,7 @@ void ChannelMapEntry::addCredits(uint numCredits) {
   // we're trying to set up.
   else if (getNetwork() == GLOBAL) {
     incrementCredits(1);
-    setAcquired(numCredits == 1);
+    setAcquired(credits == 1);
     creditArrived_.notify();
   }
 }
@@ -103,8 +107,8 @@ void ChannelMapEntry::setCredits(uint count) {
 
 void ChannelMapEntry::incrementCredits(int count) {
   // Never increment/decrement the counter if there are infinite credits.
-  if (globalView().credits != INFINITE_CREDIT_COUNT) {
-    setCredits(globalView().credits + count);
+  if (numCredits() != INFINITE_CREDIT_COUNT) {
+    setCredits(numCredits() + count);
   }
 }
 
@@ -127,7 +131,7 @@ void ChannelMapEntry::write(EncodedCMTEntry data) {
   if (data == 0)
     LOKI_WARN << "setting channel map entry " << id_ << " to 0." << std::endl;
 
-  uint oldCredits = globalView().credits;
+  uint oldCredits = numCredits();
 
   data_ = data;
 
