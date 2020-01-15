@@ -56,11 +56,9 @@ public:
 
   virtual void syscall(int code);
 
-  virtual void waitForCredit(ChannelIndex channel);
-
   virtual void sendOnNetwork(NetworkData flit);
-
   virtual void selectChannelWithData(uint bitmask);
+  virtual void waitForCredit(ChannelIndex channel);
 
   virtual void startRemoteExecution(ChannelID address);
   virtual void endRemoteExecution();

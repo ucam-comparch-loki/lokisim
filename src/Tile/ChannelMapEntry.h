@@ -200,11 +200,15 @@ public:
   uint hammingDistance(const ChannelMapEntry& other) const;
 
   // Event triggered when a credit arrives for a particular channel.
-  const sc_event& creditArrivedEvent() const;
+  const sc_core::sc_event& creditArrivedEvent() const;
 
   ChannelMapEntry(ChannelID localID);
   ChannelMapEntry(const ChannelMapEntry& other);
   ChannelMapEntry& operator=(const ChannelMapEntry& other);
+
+  // Included to stop compiler errors when creating vectors of ChannelMapEntries
+  // but private to prevent use.
+  ChannelMapEntry();
 
   friend std::ostream& operator<< (std::ostream& os, const ChannelMapEntry& c) {
     os << c.getDestination();

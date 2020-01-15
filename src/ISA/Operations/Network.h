@@ -65,6 +65,10 @@ public:
   SelectChannel(Instruction encoded) : Has1Operand<HasResult<T>>(encoded) {}
 
   void compute() {
+    // Selch has a side effect, so can't be computed here. The side effect is to
+    // modify a round-robin counter, so the next time selch is used a different
+    // channel may be selected.
+
     this->startingPhase(this->INST_COMPUTE);
     this->core->selectChannelWithData(this->operand1);
   }

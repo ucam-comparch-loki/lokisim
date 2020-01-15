@@ -10,9 +10,7 @@
 
 #include "../../ISA/CoreInterface.h"
 #include "../../LokiComponent.h"
-#include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Utility/LokiVector.h"
-#include "SystemCall.h"
 #include "../Core/Fetch/InstructionPacketCache.h"
 #include "../Core/Fetch/InstructionPacketFIFO.h"
 #include "../Core/MagicMemoryConnection.h"
@@ -20,8 +18,9 @@
 #include "DecodeStage.h"
 #include "ExecuteStage.h"
 #include "WriteStage.h"
-#include "FIFOArray.h"
 #include "Storage.h"
+#include "FIFOArray.h"
+#include "SystemCall.h"
 
 class ComputeTile;
 
@@ -75,10 +74,10 @@ public:
 
   // Implement CoreInterface.
   virtual void readRegister(RegisterIndex index, RegisterPort port);
-  virtual void writeRegister(RegisterIndex index, int32_t value);
+  virtual void writeRegister(RegisterIndex index, RegisterFile::write_t value);
 
   virtual void readPredicate();
-  virtual void writePredicate(bool value);
+  virtual void writePredicate(PredicateRegister::write_t value);
 
   virtual void fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
                      bool execute, bool persistent);
@@ -87,21 +86,21 @@ public:
   virtual void computeLatency(opcode_t opcode, function_t fn=(function_t)0);
 
   virtual void readCMT(RegisterIndex index);
-  virtual void writeCMT(RegisterIndex index, EncodedCMTEntry value);
+  virtual void writeCMT(RegisterIndex index, ChannelMapTable::write_t value);
 
   virtual void readCreg(RegisterIndex index);
-  virtual void writeCreg(RegisterIndex index, int32_t value);
+  virtual void writeCreg(RegisterIndex index, ControlRegisters::write_t value);
 
   virtual void readScratchpad(RegisterIndex index);
-  virtual void writeScratchpad(RegisterIndex index, int32_t value);
+  virtual void writeScratchpad(RegisterIndex index, Scratchpad::write_t value);
 
   virtual void syscall(int code);
 
-  virtual void waitForCredit(ChannelIndex channel);
   virtual void selectChannelWithData(uint bitmask);
 
   virtual void sendOnNetwork(NetworkData flit);
   virtual uint creditsAvailable(ChannelIndex channel) const;
+  virtual void waitForCredit(ChannelIndex channel);
 
   virtual void startRemoteExecution(ChannelID address);
   virtual void endRemoteExecution();
@@ -113,20 +112,28 @@ public:
   virtual bool inputFIFOHasData(ChannelIndex fifo) const;
 
 
-  const sc_event& readRegistersEvent() const; // Need to specify port?
-  const sc_event& wroteRegistersEvent() const; // Need to specify port?
+  const sc_event& readRegistersEvent(RegisterPort port) const;
+  const sc_event& wroteRegistersEvent(RegisterPort port=REGISTER_PORT_1) const;
   const sc_event& computeFinishedEvent() const;
-  const sc_event& readCMTEvent() const;
-  const sc_event& wroteCMTEvent() const;
-  const sc_event& readScratchpadEvent() const;
-  const sc_event& wroteScratchpadEvent() const;
-  const sc_event& readCRegsEvent() const;
-  const sc_event& wroteCRegsEvent() const;
-  const sc_event& readPredicateEvent() const;
-  const sc_event& wrotePredicateEvent() const;
+  const sc_event& readCMTEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& wroteCMTEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& readScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& wroteScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& readCRegsEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& wroteCRegsEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& readPredicateEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& wrotePredicateEvent(RegisterPort port=REGISTER_PORT_1) const;
   const sc_event& networkDataArrivedEvent() const;
   const sc_event& sentNetworkDataEvent() const;
   const sc_event& creditArrivedEvent() const;
+  const sc_event& selchFinishedEvent() const;
+
+  const RegisterFile::read_t      getRegisterOutput(RegisterPort port) const;
+  const ChannelMapTable::read_t   getCMTOutput(RegisterPort port=REGISTER_PORT_1) const;
+  const Scratchpad::read_t        getScratchpadOutput(RegisterPort port=REGISTER_PORT_1) const;
+  const ControlRegisters::read_t  getCRegOutput(RegisterPort port=REGISTER_PORT_1) const;
+  const PredicateRegister::read_t getPredicateOutput(RegisterPort port=REGISTER_PORT_1) const;
+  const RegisterIndex             getSelectedChannel() const;
 
 
   // Debug interface which bypasses instrumentation, etc. and completes
@@ -172,7 +179,6 @@ private:
   InstructionPacketFIFO  iInstFIFO;
   InstructionPacketCache iInstCache;
   InputFIFOs             iDataFIFOs;
-  NetworkFIFO<Word>      iCreditFIFO;
 
   OutputFIFOs            oDataFIFOs;
 

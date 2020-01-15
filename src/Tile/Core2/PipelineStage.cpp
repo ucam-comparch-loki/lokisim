@@ -89,11 +89,6 @@ void PipelineStage::syscall(int code) {
   loki_assert(false);
 }
 
-void PipelineStage::waitForCredit(ChannelIndex channel) {
-  LOKI_ERROR << "Can't wait for credits from " << this->name() << endl;
-  loki_assert(false);
-}
-
 void PipelineStage::sendOnNetwork(NetworkData flit) {
   LOKI_ERROR << "Can't send on network from " << this->name() << endl;
   loki_assert(false);
@@ -101,6 +96,11 @@ void PipelineStage::sendOnNetwork(NetworkData flit) {
 
 void PipelineStage::selectChannelWithData(uint bitmask) {
   LOKI_ERROR << "Can't select input channel from " << this->name() << endl;
+  loki_assert(false);
+}
+
+void PipelineStage::waitForCredit(ChannelIndex channel) {
+  LOKI_ERROR << "Can't wait for credits from " << this->name() << endl;
   loki_assert(false);
 }
 
@@ -125,6 +125,10 @@ bool PipelineStage::inputFIFOHasData(ChannelIndex fifo) const {
 
 uint PipelineStage::creditsAvailable(ChannelIndex channel) const {
   return core().creditsAvailable(channel);
+}
+
+Core& PipelineStage::core() const {
+  return static_cast<Core&>(*(this->get_parent_object()));
 }
 
 } // end namespace

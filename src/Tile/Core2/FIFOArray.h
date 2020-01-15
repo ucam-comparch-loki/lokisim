@@ -16,6 +16,8 @@
 
 namespace Compute {
 
+using sc_core::sc_event;
+
 // We write flits to the FIFOs, but only need to read the payloads.
 class InputFIFOs: public StorageBase<NetworkData, int32_t, NetworkData> {
 
@@ -48,6 +50,12 @@ public:
   void selectChannelWithData(uint bitmask);
   RegisterIndex getSelectedChannel() const;
 
+  // Event triggered whenever any data is written to any FIFO.
+  const sc_event& anyDataArrivedEvent() const;
+
+  // Event triggered when data is written to one of the selected channels.
+  const sc_event& selectedDataArrivedEvent() const;
+
   // Read which bypasses all normal processes and completes immediately.
   const int32_t& debugRead(RegisterIndex fifo);
 
@@ -57,6 +65,12 @@ public:
 protected:
 
   void processRequests();
+
+private:
+
+  // State has changed: check whether data has arrived for one of the selected
+  // channels.
+  void checkBitmask();
 
 //============================================================================//
 // Local state
@@ -69,6 +83,11 @@ private:
 
   // Allows round-robin selection of channels when executing selch.
   LoopCounter       currentChannel;
+
+  // Bitmask representing channels available to selch. Bit 0 maps to fifos[0].
+  uint              bitmask;
+
+  sc_event anyDataArrived, selectedDataArrived;
 
   // For debug.
   int32_t local;
@@ -106,6 +125,13 @@ public:
   // No need to specify a FIFO - we will use the network address to choose.
   void write(NetworkData value);
 
+  // Event triggered when any data has been sent onto the network. For our
+  // purposes, this means the data has entered the output FIFO, as this allows
+  // the instruction which generated the data to continue.
+  // TODO: need to ignore fetch requests? Have two ports, with priority/
+  // arbitration, and only return event for one of the ports?
+  const sc_event& anyDataSentEvent() const;
+
   // Read which bypasses all normal processes and completes immediately.
   const NetworkData& debugRead(RegisterIndex fifo);
 
@@ -127,6 +153,8 @@ private:
 
   // For debug.
   NetworkData local;
+
+  sc_event anyDataSent;
 
 };
 

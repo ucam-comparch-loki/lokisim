@@ -29,6 +29,7 @@ InputFIFOs::InputFIFOs(sc_module_name name, size_t numFIFOs,
     iData[i](*fifo);
   }
 
+  bitmask = 0;
   local = 0;
 
 }
@@ -38,16 +39,32 @@ bool InputFIFOs::hasData(RegisterIndex fifo) const {
 }
 
 void InputFIFOs::selectChannelWithData(uint bitmask) {
+  loki_assert(bitmask != 0);
+  this->bitmask = bitmask;
+
   // TODO
   // Don't return anything, just set state to monitor these channels.
-  // Trigger an event if data is already here.
+  // Trigger selectedDataArrived if data is already here. Reset the bitmask when
+  // that event is notified.
 }
 
 RegisterIndex InputFIFOs::getSelectedChannel() const {
-  // TODO
+  RegisterIndex buffer = currentChannel.value();
+  loki_assert(fifos[buffer].canRead());
+  return buffer;
+}
+
+const sc_event& InputFIFOs::anyDataArrivedEvent() const {
+  return anyDataArrived;
+}
+
+const sc_event& InputFIFOs::selectedDataArrivedEvent() const {
+  return selectedDataArrived;
 }
 
 const int32_t& InputFIFOs::debugRead(RegisterIndex fifo) {
+  // Need to return a reference to match existing interfaces, so copy to a local
+  // variable first.
   local = fifos[fifo].peek().payload().toInt();
   return local;
 }
@@ -62,18 +79,40 @@ void InputFIFOs::processRequests() {
     return;
   }
 
+  bool newData = false;
+
   // Process writes first so reads see the latest data.
   for (uint i=0; i<this->writePort.size(); i++) {
     if (this->writePort[i].inProgress()) {
       fifos[this->writePort[i].reg()].write(this->writePort[i].result());
       this->writePort[i].notifyFinished();
+      newData = true;
     }
+  }
+
+  if (newData) {
+    anyDataArrived.notify(sc_core::SC_ZERO_TIME);
+    checkBitmask();  // For selch instruction.
   }
 
   // TODO: warn if reading from the same FIFO multiple times.
   for (uint i=0; i<this->readPort.size(); i++)
     if (this->readPort[i].inProgress())
       this->readPort[i].setResult(fifos[this->readPort[i].reg()].read().payload().toInt());
+}
+
+void InputFIFOs::checkBitmask() {
+  if (bitmask == 0)
+    return;
+
+  for (uint i=0; i<fifos.size(); i++) {
+    RegisterIndex buffer = ++currentChannel;
+    if (fifos[buffer].canRead() && (bitmask & (1 << buffer))) {
+      selectedDataArrived.notify(sc_core::SC_ZERO_TIME);
+      bitmask = 0;
+      break;
+    }
+  }
 }
 
 
@@ -101,6 +140,10 @@ void OutputFIFOs::write(NetworkData value) {
     StorageBase<NetworkData>::write(0, value);
 }
 
+const sc_event& OutputFIFOs::anyDataSentEvent() const {
+  return anyDataSent;
+}
+
 const NetworkData& OutputFIFOs::debugRead(RegisterIndex fifo) {
   local = fifos[fifo].peek();
   return local;
@@ -121,6 +164,7 @@ void OutputFIFOs::processRequests() {
     if (this->writePort[i].inProgress()) {
       fifos[this->writePort[i].reg()].write(this->writePort[i].result());
       this->writePort[i].notifyFinished();
+      anyDataSent.notify(sc_core::SC_ZERO_TIME);
     }
   }
 

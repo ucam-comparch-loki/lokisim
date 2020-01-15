@@ -15,15 +15,22 @@
 #ifndef SRC_TILE_CORE_STORAGE_H_
 #define SRC_TILE_CORE_STORAGE_H_
 
-#include "../../ISA/CoreInterface.h"
-#include "../ChannelMapEntry.h"
 #include "StorageBase.h"
+#include "../../ISA/CoreInterface.h"
+#include "../../Network/FIFOs/NetworkFIFO.h"
+#include "../../Network/Interface.h"
+#include "../ChannelMapEntry.h"
 
 namespace Compute {
 
+class Core;
+using sc_core::sc_event;
+
 // Implementation of StorageBase which holds its data in an array.
-template<typename T>
-class RegisterFileBase : public StorageBase<T> {
+template<typename stored_type,
+         typename read_type=stored_type,
+         typename write_type=stored_type>
+class RegisterFileBase : public StorageBase<stored_type, read_type, write_type> {
 
 //============================================================================//
 // Constructors and destructors
@@ -32,7 +39,7 @@ class RegisterFileBase : public StorageBase<T> {
 protected:
   RegisterFileBase(sc_module_name name, uint readPorts, uint writePorts,
                    size_t size) :
-      StorageBase<T>(name, readPorts, writePorts),
+      StorageBase<stored_type, read_type, write_type>(name, readPorts, writePorts),
       data(size) {
     // Nothing
   }
@@ -44,15 +51,15 @@ protected:
 public:
 
   // Read which bypasses all normal processes and completes immediately.
-  const T& debugRead(RegisterIndex reg) {
+  const stored_type& debugRead(RegisterIndex reg) {
     return data[reg];
   }
-  const T& debugRead(RegisterIndex reg) const {
+  const stored_type& debugRead(RegisterIndex reg) const {
     return data[reg];
   }
 
   // Write which bypasses all normal processes and completes immediately.
-  void debugWrite(RegisterIndex reg, T value) {
+  void debugWrite(RegisterIndex reg, stored_type value) {
     data[reg] = value;
   }
 
@@ -65,17 +72,34 @@ protected:
     }
 
     // Process writes first so reads see the latest data.
-    for (uint i=0; i<this->writePort.size(); i++) {
-      if (this->writePort[i].inProgress()) {
-        data[this->writePort[i].reg()] = this->writePort[i].result();
-        this->writePort[i].notifyFinished();
+    for (uint port=0; port<this->writePort.size(); port++) {
+      if (this->writePort[port].inProgress()) {
+        doWrite(port);
+        this->writePort[port].notifyFinished();
       }
     }
 
-    for (uint i=0; i<this->readPort.size(); i++)
-      if (this->readPort[i].inProgress())
-        this->readPort[i].setResult(data[this->readPort[i].reg()]);
+    for (uint port=0; port<this->readPort.size(); port++)
+      if (this->readPort[port].inProgress())
+        doRead(port);
   }
+
+  // TODO: virtual? This should almost certainly be overridden if stored_type
+  // != write_type.
+  void doWrite(uint port) {
+    // Default: copy data from the port to the data store.
+    data[this->writePort[port].reg()] = this->writePort[port].result();
+  }
+
+  // TODO: virtual? This should almost certainly be overridden if stored_type
+  // != read_type.
+  void doRead(uint port) {
+    // Default: copy data from the data store to the port.
+    this->readPort[port].setResult(data[this->readPort[port].reg()]);
+  }
+
+  const Core& core() const;
+  const ComponentID& id() const;
 
 //============================================================================//
 // Local state
@@ -83,7 +107,7 @@ protected:
 
 protected:
 
-  vector<T> data;
+  vector<stored_type> data;
 
 };
 
@@ -100,12 +124,24 @@ public:
   Scratchpad(sc_module_name name, const scratchpad_parameters_t& params);
 };
 
-class ChannelMapTable : public RegisterFileBase<ChannelMapEntry> {
+class ChannelMapTable : public RegisterFileBase<ChannelMapEntry, EncodedCMTEntry, EncodedCMTEntry> {
 public:
+  // Connection from the global credit network.
+  typedef sc_port<network_sink_ifc<Word>> InPort;
+  InPort iCredit;
+
+  SC_HAS_PROCESS(ChannelMapTable);
   ChannelMapTable(sc_module_name name,
                   const channel_map_table_parameters_t& params);
-  void write(RegisterIndex index, EncodedCMTEntry value);
   uint creditsAvailable(ChannelIndex channel) const;
+  const sc_event& creditArrivedEvent() const;
+protected:
+  void doRead(uint port);
+  void doWrite(uint port);
+private:
+  void consumeCredit();
+
+  NetworkFIFO<Word> iCreditFIFO;
 };
 
 class ControlRegisters : public RegisterFileBase<int32_t> {

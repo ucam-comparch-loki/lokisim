@@ -75,7 +75,6 @@ void DecodeStage::startRemoteExecution(ChannelID address) {
 }
 
 void DecodeStage::waitForCredit(ChannelIndex channel) {
-  core().waitForCredit(channel);
   wocheHandler.begin(instruction);
 }
 

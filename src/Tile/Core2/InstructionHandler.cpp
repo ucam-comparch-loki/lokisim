@@ -66,7 +66,7 @@ void ReadRegisterHandler::respondToInstruction(DecodedInstruction inst) const {
 }
 
 const sc_event& ReadRegisterHandler::coreFinishedEvent() const {
-  return core().readRegistersEvent();
+  return core().readRegistersEvent(port);
 }
 
 
@@ -106,6 +106,7 @@ ReadCMTHandler::ReadCMTHandler(sc_module_name name) :
 }
 
 void ReadCMTHandler::respondToInstruction(DecodedInstruction inst) const {
+  // TODO: CMT outputs decoded CMT entries - is that useful?
   EncodedCMTEntry result = core().getCMTOutput();
   inst->readCMTCallback(result);
 }
@@ -179,7 +180,7 @@ WriteCRegsHandler::WriteCRegsHandler(sc_module_name name) :
 }
 
 void WriteCRegsHandler::respondToInstruction(DecodedInstruction inst) const {
-  inst->writeCRegsCallback();
+  inst->writeCregsCallback();
 }
 
 const sc_event& WriteCRegsHandler::coreFinishedEvent() const {
@@ -240,6 +241,8 @@ void WocheHandler::respondToInstruction(DecodedInstruction inst) const {
 }
 
 const sc_event& WocheHandler::coreFinishedEvent() const {
+  // A credit arriving may not mean that woche is finished - this is managed
+  // in the woche instruction.
   return core().creditArrivedEvent();
 }
 
@@ -250,15 +253,12 @@ SelchHandler::SelchHandler(sc_module_name name) :
 }
 
 void SelchHandler::respondToInstruction(DecodedInstruction inst) const {
-  int32_t bufferIndex = core().selectChannel(bitmask);
+  int32_t bufferIndex = core().getSelectedChannel();
   inst->computeCallback(bufferIndex);
 }
 
 const sc_event& SelchHandler::coreFinishedEvent() const {
-  // TODO: may also need to trigger immediately if data was already there.
-  //       Need a separate selchEvent()?
-  // TODO: check whether data arrived on any of the specified channels.
-  return core().networkDataArrivedEvent();
+  return core().selchFinishedEvent();
 }
 
 } // end namespace

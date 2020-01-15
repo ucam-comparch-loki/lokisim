@@ -6,11 +6,22 @@
  */
 
 #include "Storage.h"
-
+#include "Core.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/Parameters.h"
 
 namespace Compute {
+
+// Assuming all instances are direct submodules of Core.
+template<typename stored_type, typename read_type, typename write_type>
+const Core& RegisterFileBase<stored_type, read_type, write_type>::core() const {
+  return static_cast<Core&>(*(this->get_parent_object()));
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+const ComponentID& RegisterFileBase<stored_type, read_type, write_type>::id() const {
+  return core().id;
+}
 
 RegisterFile::RegisterFile(sc_module_name name,
                            const register_file_parameters_t& params) :
@@ -53,17 +64,53 @@ Scratchpad::Scratchpad(sc_module_name name,
 
 ChannelMapTable::ChannelMapTable(sc_module_name name,
                                  const channel_map_table_parameters_t& params) :
-    RegisterFileBase<ChannelMapEntry>(name, 1, 1, params.size) {
-  // Nothing
-}
+    RegisterFileBase<ChannelMapEntry, EncodedCMTEntry, EncodedCMTEntry>(name, 1, 1, 0),
+    iCreditFIFO("credits", 1) {  // More of a register than a FIFO
 
-void ChannelMapTable::write(RegisterIndex index, EncodedCMTEntry value) {
-  // Bypass the usual write mechanism so the encoded data is decoded.
-  data[index].write(value);
+  // Need to bypass the normal constructor so we can provide arguments when
+  // initialising stored data. Argument = network address on credit network.
+  ComponentID thisCore = id();
+  for (uint i=0; i<params.size; i++)
+    data.push_back(ChannelMapEntry(ChannelID(thisCore, i)));
+
+  iCredit(iCreditFIFO);
+
+  SC_METHOD(consumeCredit);
+  sensitive << iCreditFIFO.canReadEvent();
+  dont_initialize();
+
 }
 
 uint ChannelMapTable::creditsAvailable(ChannelIndex channel) const {
   return data[channel].numCredits();
+}
+
+const sc_core::sc_event& ChannelMapTable::creditArrivedEvent() const {
+  return iCreditFIFO.dataConsumedEvent();
+}
+
+void ChannelMapTable::doRead(uint port) {
+  // Convert from ChannelMapEntry to EncodedCMTEntry.
+  EncodedCMTEntry result = data[this->readPort[port].reg()].read();
+  this->readPort[port].setResult(result);
+}
+
+void ChannelMapTable::doWrite(uint port) {
+  // Convert from EncodedCMTEntry to ChannelMapEntry.
+  EncodedCMTEntry encoded = this->writePort[port].result();
+  data[this->writePort[port].reg()].write(encoded);
+}
+
+void ChannelMapTable::consumeCredit() {
+  NetworkCredit credit = iCreditFIFO.read();
+
+  ChannelIndex channel = credit.channelID().channel;
+  uint numCredits = credit.payload().toUInt();
+
+  LOKI_LOG(3) << this->name() << " received " << numCredits << " credit(s) at "
+      << ChannelID(id(), channel) << " " << credit.messageID() << endl;
+
+  data[channel].addCredits(numCredits);
 }
 
 

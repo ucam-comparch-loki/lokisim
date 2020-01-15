@@ -32,7 +32,7 @@ public:
   EncodedCMTEntry read(MapIndex entry);
 
   // Event triggered when a credit arrives for a particular channel.
-  const sc_event& creditArrivedEvent(MapIndex entry) const;
+  const sc_core::sc_event& creditArrivedEvent(MapIndex entry) const;
 
   void addCredit(MapIndex entry, uint numCredits);
   void removeCredit(MapIndex entry);

@@ -7,6 +7,11 @@
  * All methods returning void must complete immediately, but may complete
  * asynchronously if necessary.
  *
+ * TODO: could break this interface into smaller pieces to allow different
+ * architectures to be simulated.
+ *   e.g. LokiCore = HasNetwork<HasScratchpad<HasPredicate<BaseCore>>>
+ *        RISCVCore = HasFPU<BaseCore>
+ *
  *  Created on: 2 Aug 2019
  *      Author: db434
  */

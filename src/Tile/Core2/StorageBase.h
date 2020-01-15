@@ -102,6 +102,11 @@ template<typename stored_type,
          typename write_type=stored_type>
 class StorageBase : public LokiComponent {
 
+public:
+
+  typedef read_type read_t;
+  typedef write_type write_t;
+
 //============================================================================//
 // Ports
 //============================================================================//

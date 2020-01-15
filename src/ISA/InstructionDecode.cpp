@@ -106,8 +106,8 @@ typedef NoDest1Src1Imm<WriteCMT<R1nc>> SetChMapI;
 typedef NetworkSend<Dest1Imm<ReadCregs<R1>>> CRegRdI;
 typedef NoDest1Src1Imm<WriteCregs<R1nc>> CRegWrI;
 
-// Control flow. Fetches don't necessarily send on the network, so don't use
-// NetworkSend.
+// Control flow. Any requests sent to memory are side effects of these
+// instructions and not part of their main execution, so don't use NetworkSend.
 typedef ComputeEarly<InstructionFetch<Relative<NoDest2Imm<PredicatedSelect<PFF>>>>> PSelFetchR;
 typedef ComputeEarly<InstructionFetch<NoDest2Src<PredicatedSelect<R2nc>>>> PSelFetch;
 typedef ComputeEarly<InstructionFetch<Relative<NoDest1Imm<NoOp<FF>>>>> FetchR;

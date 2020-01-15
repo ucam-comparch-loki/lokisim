@@ -273,6 +273,12 @@ const sc_event& ChannelMapEntry::creditArrivedEvent() const {
   return creditArrived_;
 }
 
+ChannelMapEntry::ChannelMapEntry() :
+    id_(ChannelID()), data_(0), network_(MULTICAST), addressIncrement_(0) {
+  // Disabled - must specify ID.
+  assert(false);
+}
+
 ChannelMapEntry::ChannelMapEntry(ChannelID localID) :
   id_(localID),
   data_(0),
