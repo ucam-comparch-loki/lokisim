@@ -34,6 +34,7 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     iInstCache("ipk_cache", params.cache),
     iDataFIFOs("iBuffers", params.numInputChannels - 2, params.inputFIFO),
     oDataFIFOs("oBuffers", params.outputFIFO),
+    memoryBankSelector(ID),
     magicMemoryConnection("magic_memory"),
     systemCallHandler("syscall") {
 
@@ -131,7 +132,7 @@ void Core::endRemoteExecution() {
 
 ChannelID Core::getNetworkDestination(EncodedCMTEntry channelMap,
                                       MemoryAddr address) const {
-  // TODO - I think MemoryBankSelector is in another branch?
+  return memoryBankSelector.getNetworkAddress(channelMap, address);
 }
 
 bool Core::inputFIFOHasData(ChannelIndex fifo) const {

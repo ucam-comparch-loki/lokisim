@@ -64,7 +64,7 @@ public:
     uint scratchpadL1      : 1;
     uint l2Skip            : 1;
     uint l1Skip            : 1;
-    uint groupSize         : 2;
+    uint logGroupSize      : 2;
     uint returnChannel     : 3;
     uint bank              : 3;
     uint channel           : 3;
@@ -73,7 +73,7 @@ public:
 
     uint flatten() {
       return (padding << 16) | (scratchpadL1 << 15) |
-             (l2Skip << 14) | (l1Skip << 13) | (groupSize << 11) |
+             (l2Skip << 14) | (l1Skip << 13) | (logGroupSize << 11) |
              (returnChannel << 8) | (bank << 5) | (channel << 2) |
              (isMemory << 1) | (isGlobal << 0);
     }
@@ -83,7 +83,7 @@ public:
       scratchpadL1  = (flat >> 15) & 0x1;
       l2Skip        = (flat >> 14) & 0x1;
       l1Skip        = (flat >> 13) & 0x1;
-      groupSize     = (flat >> 11) & 0x3;
+      logGroupSize  = (flat >> 11) & 0x3;
       returnChannel = (flat >> 8) & 0x7;
       bank          = (flat >> 5) & 0x7;
       channel       = (flat >> 2) & 0x7;

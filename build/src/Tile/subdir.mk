@@ -7,6 +7,7 @@ CPP_SRCS += \
 ../src/Tile/ChannelMapEntry.cpp \
 ../src/Tile/ComputeTile.cpp \
 ../src/Tile/EmptyTile.cpp \
+../src/Tile/MemoryBankSelector.cpp \
 ../src/Tile/MemoryControllerTile.cpp \
 ../src/Tile/Tile.cpp 
 
@@ -14,6 +15,7 @@ OBJS += \
 ./src/Tile/ChannelMapEntry.o \
 ./src/Tile/ComputeTile.o \
 ./src/Tile/EmptyTile.o \
+./src/Tile/MemoryBankSelector.o \
 ./src/Tile/MemoryControllerTile.o \
 ./src/Tile/Tile.o 
 
@@ -21,6 +23,7 @@ CPP_DEPS += \
 ./src/Tile/ChannelMapEntry.d \
 ./src/Tile/ComputeTile.d \
 ./src/Tile/EmptyTile.d \
+./src/Tile/MemoryBankSelector.d \
 ./src/Tile/MemoryControllerTile.d \
 ./src/Tile/Tile.d 
 

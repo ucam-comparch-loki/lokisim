@@ -14,6 +14,7 @@
 #include "../Core/Fetch/InstructionPacketCache.h"
 #include "../Core/Fetch/InstructionPacketFIFO.h"
 #include "../Core/MagicMemoryConnection.h"
+#include "../MemoryBankSelector.h"
 #include "FetchStage.h"
 #include "DecodeStage.h"
 #include "ExecuteStage.h"
@@ -181,6 +182,8 @@ private:
   InputFIFOs             iDataFIFOs;
 
   OutputFIFOs            oDataFIFOs;
+
+  MemoryBankSelector     memoryBankSelector;
 
   // Debug connection to memory. Has zero latency.
   MagicMemoryConnection  magicMemoryConnection;

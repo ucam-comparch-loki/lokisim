@@ -31,8 +31,8 @@ public:
   void assignToCore(CoreInterface& core, MemoryAddr address,
                     InstructionSource source);
 
-  // Event triggered whenever a phase of computation completes. At most one
-  // phase may be in progress at a time.
+  // Event triggered whenever a phase of computation completes. Multiple
+  // phases may be in progress at a time.
   const sc_core::sc_event& finishedPhaseEvent() const;
 
   // Returns whether the instruction is blocked on some operation. An

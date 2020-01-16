@@ -19,20 +19,41 @@ DecodeStage::DecodeStage(sc_module_name name) :
     readCMTHandler("cmt"),
     wocheHandler("credits"),
     selchHandler("buffers") {
-  // Nothing
+
+  remoteMode = false;
+
 }
 
 void DecodeStage::execute() {
-  // TODO Check whether this instruction needs to be executed.
+  if (remoteMode) {
+    // TODO: set destination
+    //      (or create new instruction type for remote execution?)
+    // TODO: check for EOP and endRemoteExecution()
+  }
+  // TODO
+  // else if previous instruction writes predicate
+  //         and this instruction reads predicate
+  //         and modifies state in this stage (reads channel, stalls on selch/woche)
+  //   wait for that instruction to update the predicate
+  // else if this instruction sends on network and there aren't enough credits
+  //   wait for credits
+  //   possibly set off register reads, etc. and just block at the end?
+  else {
 
-  instruction->readRegisters();
-  instruction->readCMT();
-  instruction->readPredicate();
-  instruction->earlyCompute();
+    instruction->readRegisters();
+    instruction->readCMT();
+    instruction->readPredicate(); // ??
+    instruction->earlyCompute();
+
+    previous = instruction;
+
+  }
 }
 
 void DecodeStage::computeLatency(opcode_t opcode, function_t fn) {
   // TODO: include a list of operations which are supported here?
+  // Helps catch issues with instructions executing at the wrong time, but
+  // creates a list which needs to be maintained.
   switch (opcode) {
     default:
       // TODO: 1 cycle wait
@@ -70,8 +91,14 @@ void DecodeStage::jump(JumpOffset offset) {
 }
 
 void DecodeStage::startRemoteExecution(ChannelID address) {
-  core().startRemoteExecution(address);
-  // TODO: should we do something here instead?
+  LOKI_LOG(1) << this->name() << " beginning remote execution" << endl;
+  remoteMode = true;
+  remoteDestination = address;
+}
+
+void DecodeStage::endRemoteExecution() {
+  LOKI_LOG(1) << this->name() << " ending remote execution" << endl;
+  remoteMode = false;
 }
 
 void DecodeStage::waitForCredit(ChannelIndex channel) {

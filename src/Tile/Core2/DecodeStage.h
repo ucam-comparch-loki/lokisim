@@ -38,6 +38,7 @@ public:
                      bool execute, bool persistent);
   virtual void jump(JumpOffset offset);
   virtual void startRemoteExecution(ChannelID address);
+  virtual void endRemoteExecution();
   virtual void waitForCredit(ChannelIndex channel);
   virtual void selectChannelWithData(uint bitmask);
 
@@ -59,6 +60,15 @@ private:
   ReadCMTHandler readCMTHandler;
   WocheHandler wocheHandler;
   SelchHandler selchHandler;
+
+  // When in remote execution mode, all instructions are sent to the specified
+  // network address without being executed locally. Remote execution ends when
+  // the final instruction in the instruction packet has been forwarded.
+  bool remoteMode;
+  ChannelID remoteDestination;
+
+  // Keep a copy of the previous instruction to help detect dependencies.
+  DecodedInstruction previous;
 
 };
 
