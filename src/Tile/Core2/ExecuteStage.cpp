@@ -11,7 +11,7 @@
 namespace Compute {
 
 ExecuteStage::ExecuteStage(sc_module_name name) :
-    PipelineStage(name),
+    MiddlePipelineStage(name),
     computeHandler("compute"),
     readCMTHandler("readCMT"),
     writeCMTHandler("writeCMT"),

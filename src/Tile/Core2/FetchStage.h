@@ -12,7 +12,7 @@
 
 namespace Compute {
 
-class FetchStage: public PipelineStage {
+class FetchStage: public FirstPipelineStage {
 
 //============================================================================//
 // Constructors and destructors

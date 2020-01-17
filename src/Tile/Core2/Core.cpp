@@ -25,6 +25,9 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     decodeStage("decode"),
     executeStage("execute"),
     writeStage("write"),
+    pipeReg1("pipe_reg1", PipelineRegister::FETCH_DECODE),
+    pipeReg2("pipe_reg2", PipelineRegister::DECODE_EXECUTE),
+    pipeReg3("pipe_reg3", PipelineRegister::EXECUTE_WRITE),
     registers("regs", params.registerFile),
     scratchpad("scratchpad", params.scratchpad),
     channelMapTable("cmt", params.channelMapTable),
@@ -51,6 +54,15 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
   iCredit(channelMapTable.iCredit);
   oMemory(oDataFIFOs.oMemory);
   oMulticast(oDataFIFOs.oMulticast);
+
+  fetchStage.clock(clock);
+  decodeStage.clock(clock);
+  executeStage.clock(clock);
+  writeStage.clock(clock);
+  fetchStage.nextStage(pipeReg1); decodeStage.previousStage(pipeReg1);
+  decodeStage.nextStage(pipeReg2); executeStage.previousStage(pipeReg2);
+  executeStage.nextStage(pipeReg3); writeStage.previousStage(pipeReg3);
+
 }
 
 void Core::readRegister(RegisterIndex index, RegisterPort port) {

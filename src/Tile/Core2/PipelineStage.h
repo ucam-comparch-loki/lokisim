@@ -22,9 +22,20 @@ class Core;
 class PipelineStage : public LokiComponent, public CoreInterface {
 
 //============================================================================//
+// Ports
+//============================================================================//
+
+public:
+
+  ClockInput clock;
+
+//============================================================================//
 // Constructors and destructors
 //============================================================================//
+
 protected:
+
+  SC_HAS_PROCESS(PipelineStage);
   PipelineStage(sc_module_name name);
 
 //============================================================================//
@@ -74,10 +85,26 @@ protected:
 
   Core& core() const;
 
-  // TODO: some sort of mainLoop
+  // Glue logic surrounding the main execution. e.g. Receiving/sending
+  // instructions, stalling, etc.
+  virtual void mainLoop();
 
   // Tasks to be carried out by each pipeline stage.
   virtual void execute() = 0;
+
+  // Methods which handle supply of instructions and communication with
+  // neighbouring pipeline stages. By default these do not work - they should
+  // be overridden.
+  DecodedInstruction receiveInstruction();
+  void sendInstruction(const DecodedInstruction inst);
+  bool previousStageBlocked() const;
+  const sc_event& previousStageUnblockedEvent() const;
+  bool nextStageBlocked() const;
+  const sc_event& nextStageUnblockedEvent() const;
+
+  // Discard the next instruction to be executed, which is currently waiting in
+  // a pipeline register. Returns whether anything was discarded.
+  bool discardNextInst();
 
 //============================================================================//
 // Local state
@@ -89,6 +116,46 @@ protected:
 
   DecodedInstruction instruction;
 };
+
+
+// Mix-in to add a connection to a successor pipeline stage.
+template<class T>
+class HasSucceedingStage : public T {
+public:
+  InstructionOutput nextStage;
+
+protected:
+  HasSucceedingStage(const sc_module_name& name);
+
+  void sendInstruction(const DecodedInstruction inst);
+  bool nextStageBlocked() const;
+  const sc_event& nextStageUnblockedEvent() const;
+
+};
+
+
+// Mix-in to add a connection to a preceding pipeline stage.
+template<class T>
+class HasPrecedingStage : public T {
+public:
+  InstructionInput previousStage;
+
+protected:
+  HasPrecedingStage(const sc_module_name& name);
+
+  DecodedInstruction receiveInstruction();
+  bool previousStageBlocked() const;
+  const sc_event& previousStageUnblockedEvent() const;
+  bool discardNextInst();
+
+};
+
+
+// Mix-ins allow code to be reused in MiddlePipelineStage without using multiple
+// inheritance (which breaks SystemC).
+typedef HasSucceedingStage<PipelineStage> FirstPipelineStage;
+typedef HasPrecedingStage<PipelineStage>  LastPipelineStage;
+typedef HasPrecedingStage<HasSucceedingStage<PipelineStage>> MiddlePipelineStage;
 
 } // end namespace
 

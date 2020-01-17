@@ -11,7 +11,7 @@
 namespace Compute {
 
 WriteStage::WriteStage(sc_module_name name) :
-    PipelineStage(name),
+    LastPipelineStage(name),
     writeHandler("write"),
     networkHandler("network") {
   // Nothing

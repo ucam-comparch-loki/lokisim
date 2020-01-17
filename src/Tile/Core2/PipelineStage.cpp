@@ -13,8 +13,12 @@ namespace Compute {
 
 PipelineStage::PipelineStage(sc_module_name name) :
     LokiComponent(name),
-    CoreInterface() {
+    CoreInterface(),
+    clock("clock") {
 
+  SC_METHOD(mainLoop);
+  // TODO sensitive << clock? Pipeline buffer? IPK cache?
+  dont_initialize();
 }
 
 void PipelineStage::readRegister(RegisterIndex index, RegisterPort port) {
@@ -129,6 +133,101 @@ uint PipelineStage::creditsAvailable(ChannelIndex channel) const {
 
 Core& PipelineStage::core() const {
   return static_cast<Core&>(*(this->get_parent_object()));
+}
+
+void PipelineStage::mainLoop() {
+  // TODO
+  // If instruction is NULL, check for new instruction
+  // If output is blocked, stall
+  // Wait for clock edge? Or assume previous things only happen on clock edges?
+  // execute()
+  // Wait on instruction.finishedPhaseEvent() until !instruction.busy()
+  //   Also check immediately in case instruction does nothing
+  // Send instruction to next stage
+}
+
+DecodedInstruction PipelineStage::receiveInstruction() {
+  loki_assert(false);
+  return DecodedInstruction();
+}
+
+void PipelineStage::sendInstruction(const DecodedInstruction inst) {
+  loki_assert(false);
+}
+
+bool PipelineStage::previousStageBlocked() const {
+  return false;
+}
+
+const sc_event& PipelineStage::previousStageUnblockedEvent() const {
+  loki_assert(false);
+  return *(new sc_event());
+}
+
+bool PipelineStage::nextStageBlocked() const {
+  return false;
+}
+
+const sc_event& PipelineStage::nextStageUnblockedEvent() const {
+  loki_assert(false);
+  return *(new sc_event());
+}
+
+bool PipelineStage::discardNextInst() {
+  return false;
+}
+
+
+
+template<class T>
+HasSucceedingStage<T>::HasSucceedingStage(const sc_module_name& name) :
+    T(name),
+    nextStage("output") {
+  // Nothing
+}
+
+template<class T>
+void HasSucceedingStage<T>::sendInstruction(const DecodedInstruction inst) {
+  nextStage->write(inst);
+}
+
+template<class T>
+bool HasSucceedingStage<T>::nextStageBlocked() const {
+  return !nextStage->canWrite();
+}
+
+template<class T>
+const sc_event& HasSucceedingStage<T>::nextStageUnblockedEvent() const {
+  return nextStage->canWriteEvent();
+}
+
+
+
+template<class T>
+HasPrecedingStage<T>::HasPrecedingStage(const sc_module_name& name) :
+    T(name),
+    previousStage("input") {
+  // Nothing
+}
+
+template<class T>
+DecodedInstruction HasPrecedingStage<T>::receiveInstruction() {
+  return previousStage->read();
+}
+
+template<class T>
+bool HasPrecedingStage<T>::previousStageBlocked() const {
+  return !previousStage->canRead();
+}
+
+template<class T>
+const sc_event& HasPrecedingStage<T>::previousStageUnblockedEvent() const {
+  return previousStage->canReadEvent();
+}
+
+template<class T>
+bool HasPrecedingStage<T>::discardNextInst() {
+  return previousStage->discard();
 }
 
 } // end namespace

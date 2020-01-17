@@ -13,7 +13,7 @@
 
 namespace Compute {
 
-class DecodeStage: public PipelineStage {
+class DecodeStage: public MiddlePipelineStage {
 
 //============================================================================//
 // Constructors and destructors

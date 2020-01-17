@@ -10,7 +10,7 @@
 namespace Compute {
 
 FetchStage::FetchStage(sc_module_name name) :
-    PipelineStage(name) {
+    FirstPipelineStage(name) {
   // TODO: get instruction from cache/fifo
   // Copy across most of old FetchStage?
 }

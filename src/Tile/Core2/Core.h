@@ -21,6 +21,7 @@
 #include "WriteStage.h"
 #include "Storage.h"
 #include "FIFOArray.h"
+#include "PipelineRegister.h"
 #include "SystemCall.h"
 
 class ComputeTile;
@@ -168,6 +169,8 @@ private:
   DecodeStage            decodeStage;
   ExecuteStage           executeStage;
   WriteStage             writeStage;
+
+  PipelineRegister       pipeReg1, pipeReg2, pipeReg3;
 
   // Storage structures.
   RegisterFile           registers;

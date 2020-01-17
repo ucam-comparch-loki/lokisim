@@ -38,6 +38,9 @@ public:
   ChannelID getNetworkAddress(const ChannelMapEntry::MemoryChannel mapping,
                               const MemoryAddr address) const;
 
+  // TODO
+  // Might need a getPreviousAddress to allow multi-flit sendconfigs.
+  // Would need to ensure no race conditions with fetches.
 
 //============================================================================//
 // Local state

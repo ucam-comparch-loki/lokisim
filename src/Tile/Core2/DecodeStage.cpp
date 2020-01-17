@@ -11,7 +11,7 @@
 namespace Compute {
 
 DecodeStage::DecodeStage(sc_module_name name) :
-    PipelineStage(name),
+    MiddlePipelineStage(name),
     computeHandler("early_compute"),
     readRegHandler1("reg1", REGISTER_PORT_1),
     readRegHandler2("reg2", REGISTER_PORT_2),
