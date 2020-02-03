@@ -13,7 +13,7 @@ namespace Compute {
 ExecuteStage::ExecuteStage(sc_module_name name) :
     MiddlePipelineStage(name),
     computeHandler("compute"),
-    readCMTHandler("readCMT"),
+    readCMTHandler("readCMT", REGISTER_PORT_1), // Port 1: have read priority over DECODE
     writeCMTHandler("writeCMT"),
     readCregsHandler("readCregs"),
     writeCregsHandler("writeCregs"),
@@ -58,7 +58,8 @@ void ExecuteStage::writeCMT(RegisterIndex index, EncodedCMTEntry value) {
 }
 
 void ExecuteStage::readCreg(RegisterIndex index) {
-  core().readCreg(index);
+  // Structural hazard: use port 1 so we have priority over decode stage.
+  core().readCreg(index, REGISTER_PORT_1);
   readCregsHandler.begin(instruction);
 }
 

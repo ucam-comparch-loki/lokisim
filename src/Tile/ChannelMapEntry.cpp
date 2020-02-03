@@ -205,6 +205,13 @@ bool ChannelMapEntry::isMemory() const {
   return !channel.isGlobal && channel.isMemory;
 }
 
+bool ChannelMapEntry::isMulticast(EncodedCMTEntry data) {
+  // This may not be a multicast channel, but converting to one exposes fields
+  // which are shared between all channel types.
+  MulticastChannel channel = multicastView(data);
+  return !channel.isGlobal && !channel.isMemory;
+}
+
 bool ChannelMapEntry::isCore(EncodedCMTEntry data) {
   // This may not be a multicast channel, but converting to one exposes fields
   // which are shared between all channel types.

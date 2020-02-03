@@ -17,8 +17,7 @@ PipelineStage::PipelineStage(sc_module_name name) :
     clock("clock") {
 
   SC_METHOD(mainLoop);
-  // TODO sensitive << clock? Pipeline buffer? IPK cache?
-  dont_initialize();
+  // do initialise
 }
 
 void PipelineStage::readRegister(RegisterIndex index, RegisterPort port) {
@@ -136,14 +135,40 @@ Core& PipelineStage::core() const {
 }
 
 void PipelineStage::mainLoop() {
-  // TODO
-  // If instruction is NULL, check for new instruction
-  // If output is blocked, stall
-  // Wait for clock edge? Or assume previous things only happen on clock edges?
-  // execute()
-  // Wait on instruction.finishedPhaseEvent() until !instruction.busy()
-  //   Also check immediately in case instruction does nothing
-  // Send instruction to next stage
+
+  // Wait for instruction to be available.
+  if (previousStageBlocked())
+    next_trigger(previousStageUnblockedEvent());
+  // Wait until pipeline unstalls.
+  else if (nextStageBlocked())
+    next_trigger(nextStageUnblockedEvent());
+  // Start executing a new instruction.
+  else if (!instruction) {
+    // TODO: check that there is an instruction to receive?
+    // Is this part of previousStageBlocked()?
+    instruction = receiveInstruction();
+    // TODO: register instruction to this layer? instruction.assignToCore(*this)?
+    // Need to remove memory address and instruction source from arguments.
+
+    LOKI_LOG(2) << this->name() << " received instruction: " << instruction << endl;
+
+    execute();
+
+    // Instruction may do nothing in this stage, so can't naively check
+    // instruction->finishedPhaseEvent.
+    next_trigger(sc_core::SC_ZERO_TIME);
+  }
+  // Wait until all phases of the instruction are finished (for this stage).
+  else if (instruction->busy())
+    next_trigger(instruction->finishedPhaseEvent());
+  // Send the instruction to the next stage and delete the local copy.
+  else {
+    sendInstruction(instruction);
+    instruction.reset();
+
+    // Trigger? Default is next clock edge, which seems reasonable.
+  }
+
 }
 
 DecodedInstruction PipelineStage::receiveInstruction() {

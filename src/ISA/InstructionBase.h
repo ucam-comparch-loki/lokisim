@@ -31,9 +31,65 @@ public:
   void assignToCore(CoreInterface& core, MemoryAddr address,
                     InstructionSource source);
 
+  // Can this instruction be squashed based on the value of the predicate?
+  bool isPredicated() const;
+
+  // Is this instruction the final one in its instruction packet?
+  bool isEndOfPacket() const;
+
+  // Does this instruction read from the register file?
+  bool readsRegister(RegisterPort port) const;
+
+  // Does this instruction write to the register file?
+  bool writesRegister() const;
+
+  // Does this instruction read the predicate bit? (In order to compute a
+  // result, not to see if the instruction should execute or not.)
+  bool readsPredicate() const;
+
+  // Does this instruction write the predicate bit?
+  bool writesPredicate() const;
+
+  // Does this instruction read from the channel map table?
+  bool readsCMT() const;
+
+  // Does this instruction write to the channel map table?
+  bool writesCMT() const;
+
+  // Does this instruction read the control registers?
+  bool readsCReg() const;
+
+  // Does this instruction write to the control registers?
+  bool writesCReg() const;
+
+  // Does this instruction read from the scratchpad?
+  bool readsScratchpad() const;
+
+  // Does this instruction write to the scratchpad?
+  bool writesScratchpad() const;
+
+  // Does this instruction send data onto the network?
+  // (Fetches don't count - the network access is a side effect of checking the
+  // cache tags.)
+  bool sendsOnNetwork() const;
+
+
+  // Return the index of the register read from the given port.
+  RegisterIndex getSourceRegister(RegisterPort port) const;
+
+  // Return the index of the register written.
+  RegisterIndex getDestinationRegister() const;
+
+  // Return the computed result of the instruction.
+  int32_t getResult() const;
+
+
   // Event triggered whenever a phase of computation completes. Multiple
   // phases may be in progress at a time.
   const sc_core::sc_event& finishedPhaseEvent() const;
+
+  // Check whether a particular phase of execution has completed.
+  bool completedPhase(InstructionInterface::ExecutionPhase phase) const;
 
   // Returns whether the instruction is blocked on some operation. An
   // instruction may only be passed down the pipeline if it is not busy.
@@ -91,35 +147,20 @@ public:
   void sendNetworkData();
   void sendNetworkDataCallback();
 
+  // Notify that a credit arrived.
+  void creditArrivedCallback();
+
 protected:
 
   // If this instruction takes a signed immediate, extend the lowest `bits`
   // bits of `value` into a full 32 bit signed integer. Otherwise return value.
   int32_t signExtend(int32_t value, size_t bits) const;
 
-  enum ExecutionPhase {
-    INST_FETCH,
-    INST_DECODE,
-    INST_REG_READ,
-    INST_REG_WRITE,
-    INST_CMT_READ,
-    INST_CMT_WRITE,
-    INST_PRED_READ,
-    INST_PRED_WRITE,
-    INST_SPAD_READ,
-    INST_SPAD_WRITE,
-    INST_CREG_READ,
-    INST_CREG_WRITE,
-    INST_COMPUTE,
-    INST_NETWORK_SEND,
-
-    NUM_PHASES
-  };
-
-  void startingPhase(ExecutionPhase phase);
-  void finishedPhase(ExecutionPhase phase);
-  bool phaseInProgress(ExecutionPhase phase);
-  std::bitset<NUM_PHASES> phasesInProgress;
+  void startingPhase(InstructionInterface::ExecutionPhase phase);
+  void finishedPhase(InstructionInterface::ExecutionPhase phase);
+  bool phaseInProgress(InstructionInterface::ExecutionPhase phase) const;
+  std::bitset<InstructionInterface::NUM_PHASES> phasesInProgress;
+  std::bitset<InstructionInterface::NUM_PHASES> phasesComplete;
 
   // The original instruction.
   const Instruction encoded;
@@ -131,8 +172,7 @@ protected:
   // The conditions under which this instruction will execute.
   const Predicate predicate;
 
-  // Event triggered whenever a phase of computation completes. At most one
-  // phase may be in progress at a time.
+  // Event triggered whenever a phase of computation completes.
   sc_core::sc_event finished;
 
   CoreInterface* core;      // The core this instruction is executing on

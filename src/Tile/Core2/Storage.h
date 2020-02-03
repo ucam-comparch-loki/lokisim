@@ -38,9 +38,12 @@ class RegisterFileBase : public StorageBase<stored_type, read_type, write_type> 
 
 protected:
   RegisterFileBase(sc_module_name name, uint readPorts, uint writePorts,
-                   size_t size) :
+                   size_t size, bool prioritiseReads=false,
+                   bool prioritiseWrites=false) :
       StorageBase<stored_type, read_type, write_type>(name, readPorts, writePorts),
-      data(size) {
+      data(size),
+      prioritiseReads(prioritiseReads),
+      prioritiseWrites(prioritiseWrites) {
     // Nothing
   }
 
@@ -76,12 +79,24 @@ protected:
       if (this->writePort[port].inProgress()) {
         doWrite(port);
         this->writePort[port].notifyFinished();
+
+        if (prioritiseWrites) {
+          next_trigger(this->clock.posedge_event());
+          break;
+        }
       }
     }
 
-    for (uint port=0; port<this->readPort.size(); port++)
-      if (this->readPort[port].inProgress())
+    for (uint port=0; port<this->readPort.size(); port++) {
+      if (this->readPort[port].inProgress()) {
         doRead(port);
+
+        if (prioritiseReads) {
+          next_trigger(this->clock.posedge_event());
+          break;
+        }
+      }
+    }
   }
 
   // TODO: virtual? This should almost certainly be overridden if stored_type
@@ -108,6 +123,12 @@ protected:
 protected:
 
   vector<stored_type> data;
+
+private:
+
+  // If true, allow only one read/write per clock cycle. Priority is given to
+  // the port with the lowest index.
+  const bool prioritiseReads, prioritiseWrites;
 
 };
 

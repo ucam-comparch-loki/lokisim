@@ -100,19 +100,19 @@ const sc_event& ComputeHandler::coreFinishedEvent() const {
 }
 
 
-ReadCMTHandler::ReadCMTHandler(sc_module_name name) :
-    InstructionHandler(name) {
+ReadCMTHandler::ReadCMTHandler(sc_module_name name, RegisterPort port) :
+    InstructionHandler(name),
+    port(port) {
   // Nothing
 }
 
 void ReadCMTHandler::respondToInstruction(DecodedInstruction inst) const {
-  // TODO: CMT outputs decoded CMT entries - is that useful?
-  EncodedCMTEntry result = core().getCMTOutput();
+  EncodedCMTEntry result = core().getCMTOutput(port);
   inst->readCMTCallback(result);
 }
 
 const sc_event& ReadCMTHandler::coreFinishedEvent() const {
-  return core().readCMTEvent();
+  return core().readCMTEvent(port);
 }
 
 
@@ -237,7 +237,7 @@ WocheHandler::WocheHandler(sc_module_name name) :
 }
 
 void WocheHandler::respondToInstruction(DecodedInstruction inst) const {
-  inst->computeCallback();
+  inst->creditArrivedCallback();
 }
 
 const sc_event& WocheHandler::coreFinishedEvent() const {

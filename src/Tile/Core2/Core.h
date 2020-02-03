@@ -87,7 +87,7 @@ public:
 
   virtual void computeLatency(opcode_t opcode, function_t fn=(function_t)0);
 
-  virtual void readCMT(RegisterIndex index);
+  virtual void readCMT(RegisterIndex index, RegisterPort port);
   virtual void writeCMT(RegisterIndex index, ChannelMapTable::write_t value);
 
   virtual void readCreg(RegisterIndex index);
@@ -117,7 +117,7 @@ public:
   const sc_event& readRegistersEvent(RegisterPort port) const;
   const sc_event& wroteRegistersEvent(RegisterPort port=REGISTER_PORT_1) const;
   const sc_event& computeFinishedEvent() const;
-  const sc_event& readCMTEvent(RegisterPort port=REGISTER_PORT_1) const;
+  const sc_event& readCMTEvent(RegisterPort port) const;
   const sc_event& wroteCMTEvent(RegisterPort port=REGISTER_PORT_1) const;
   const sc_event& readScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
   const sc_event& wroteScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
@@ -131,7 +131,7 @@ public:
   const sc_event& selchFinishedEvent() const;
 
   const RegisterFile::read_t      getRegisterOutput(RegisterPort port) const;
-  const ChannelMapTable::read_t   getCMTOutput(RegisterPort port=REGISTER_PORT_1) const;
+  const ChannelMapTable::read_t   getCMTOutput(RegisterPort port) const;
   const Scratchpad::read_t        getScratchpadOutput(RegisterPort port=REGISTER_PORT_1) const;
   const ControlRegisters::read_t  getCRegOutput(RegisterPort port=REGISTER_PORT_1) const;
   const PredicateRegister::read_t getPredicateOutput(RegisterPort port=REGISTER_PORT_1) const;
@@ -140,9 +140,9 @@ public:
 
   // Debug interface which bypasses instrumentation, etc. and completes
   // instantly.
-  int32_t debugRegisterRead(RegisterIndex reg);
+  RegisterFile::read_t debugRegisterRead(RegisterIndex reg);
+  void debugRegisterWrite(RegisterIndex reg, RegisterFile::write_t data);
   int32_t debugReadByte(MemoryAddr address);
-  void debugRegisterWrite(RegisterIndex reg, int32_t data);
   void debugWriteByte(MemoryAddr address, int32_t data);
 
   uint coreIndex() const;

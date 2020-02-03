@@ -68,7 +68,7 @@ private:
   ChannelID remoteDestination;
 
   // Keep a copy of the previous instruction to help detect dependencies.
-  DecodedInstruction previous;
+  DecodedInstruction previousInstruction;
 
 };
 

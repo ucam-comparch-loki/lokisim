@@ -92,8 +92,8 @@ void Core::computeLatency(opcode_t opcode, function_t fn) {
   loki_assert(false);
 }
 
-void Core::readCMT(RegisterIndex index) {
-  channelMapTable.read(index);
+void Core::readCMT(RegisterIndex index, RegisterPort port) {
+  channelMapTable.read(index, port);
 }
 void Core::writeCMT(RegisterIndex index, ChannelMapTable::write_t value) {
   channelMapTable.write(index, value);
@@ -219,14 +219,14 @@ const RegisterIndex             Core::getSelectedChannel() const {
 
 
 
-int32_t Core::debugRegisterRead(RegisterIndex reg) {
+RegisterFile::read_t Core::debugRegisterRead(RegisterIndex reg) {
   return registers.debugRead(reg);
+}
+void Core::debugRegisterWrite(RegisterIndex reg, RegisterFile::write_t data) {
+  registers.debugWrite(reg, data);
 }
 int32_t Core::debugReadByte(MemoryAddr address) {
   return tile().readByteInternal(getSystemCallMemory(address), address).toInt();
-}
-void Core::debugRegisterWrite(RegisterIndex reg, int32_t data) {
-  registers.debugWrite(reg, data);
 }
 void Core::debugWriteByte(MemoryAddr address, int32_t data) {
   tile().writeByteInternal(getSystemCallMemory(address), address, data);

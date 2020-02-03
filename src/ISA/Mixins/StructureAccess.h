@@ -35,6 +35,10 @@ public:
     this->finishedPhase(this->INST_PRED_READ);
   }
 
+  bool readsPredicate() const {
+    return true;
+  }
+
 protected:
   bool predicateBit;
 };
@@ -65,6 +69,10 @@ public:
     this->finishedPhase(this->INST_PRED_WRITE);
   }
 
+  bool writesPredicate() const {
+    return true;
+  }
+
 protected:
   bool newPredicate;
 };
@@ -85,8 +93,16 @@ public:
   }
 
   void readCMTCallback(EncodedCMTEntry value) {
+    // Note: this method is reimplemented in the NetworkSend mix-in.
+    // Any behaviour added here should also be added there.
+    assert(this->outChannel != NO_CHANNEL);
+
     channelMapping = value;
     this->finishedPhase(this->INST_CMT_READ);
+  }
+
+  bool readsCMT() const {
+    return true;
   }
 
 protected:
@@ -108,6 +124,10 @@ public:
   void writeCMTCallback() {
     this->finishedPhase(this->INST_CMT_WRITE);
   }
+
+  bool writesCMT() const {
+    return true;
+  }
 };
 
 
@@ -124,6 +144,10 @@ public:
   void readCregsCallback(int32_t value) {
     this->result = value;
     this->finishedPhase(this->INST_CREG_READ);
+  }
+
+  bool readsCRegs() const {
+    return true;
   }
 };
 
@@ -142,6 +166,10 @@ public:
   void writeCregsCallback() {
     this->finishedPhase(this->INST_CREG_WRITE);
   }
+
+  bool writesCRegs() const {
+    return true;
+  }
 };
 
 
@@ -159,6 +187,10 @@ public:
     this->result = value;
     this->finishedPhase(this->INST_SPAD_READ);
   }
+
+  bool readsScratchpad() const {
+    return true;
+  }
 };
 
 template<class T>
@@ -175,6 +207,10 @@ public:
 
   void writeScratchpadCallback() {
     this->finishedPhase(this->INST_SPAD_WRITE);
+  }
+
+  bool writesScratchpad() const {
+    return true;
   }
 };
 

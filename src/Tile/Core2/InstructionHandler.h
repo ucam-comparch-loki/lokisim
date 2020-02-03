@@ -83,9 +83,11 @@ public:
 
 class ReadCMTHandler: public InstructionHandler {
 public:
-  ReadCMTHandler(sc_module_name name);
+  ReadCMTHandler(sc_module_name name, RegisterPort port);
   void respondToInstruction(DecodedInstruction inst) const;
   const sc_event& coreFinishedEvent() const;
+private:
+  const RegisterPort port;
 };
 
 class WriteCMTHandler: public InstructionHandler {

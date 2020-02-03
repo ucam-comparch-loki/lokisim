@@ -22,6 +22,18 @@ class NetworkSend : public T {
 public:
   NetworkSend(Instruction encoded) : T(encoded) {}
 
+  // Override the ReadCMT implementation to ensure there are enough credits
+  // available before continuing.
+  // Can't call through to ReadCMT::readCMTCallback because it ends the phase
+  // immediately.
+  void readCMTCallback(EncodedCMTEntry value) {
+    this->channelMapping = value;
+    checkIfReady();
+  }
+  void creditArrivedCallback() {
+    checkIfReady();
+  }
+
   void sendNetworkData() {
     this->startingPhase(this->INST_NETWORK_SEND);
 
@@ -58,6 +70,24 @@ public:
   }
   void sendNetworkDataCallback() {
     this->finishedPhase(this->INST_NETWORK_SEND);
+  }
+
+  bool sendsOnNetwork() const {
+    return this->outChannel != NO_CHANNEL;
+  }
+
+protected:
+  // Block the instruction until there are enough credits to send the result
+  // (if using a network which uses credits).
+  void checkIfReady() {
+    assert(this->outChannel != NO_CHANNEL);
+
+    bool useCredits = ChannelMapEntry::globalView(this->channelMapping).isGlobal;
+
+    if (useCredits && this->core->creditsAvailable(this->outChannel) == 0)
+      this->core->waitForCredit(this->outChannel);
+    else
+      this->finishedPhase(this->INST_CMT_READ);
   }
 };
 

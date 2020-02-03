@@ -6,6 +6,7 @@
  */
 
 #include "FIFOArray.h"
+#include <set>
 
 namespace Compute {
 
@@ -41,11 +42,7 @@ bool InputFIFOs::hasData(RegisterIndex fifo) const {
 void InputFIFOs::selectChannelWithData(uint bitmask) {
   loki_assert(bitmask != 0);
   this->bitmask = bitmask;
-
-  // TODO
-  // Don't return anything, just set state to monitor these channels.
-  // Trigger selectedDataArrived if data is already here. Reset the bitmask when
-  // that event is notified.
+  checkBitmask();
 }
 
 RegisterIndex InputFIFOs::getSelectedChannel() const {
@@ -82,6 +79,8 @@ void InputFIFOs::processRequests() {
   bool newData = false;
 
   // Process writes first so reads see the latest data.
+  // FIXME: not sure this will ever be executed. Writing the FIFOs is done by
+  // the network, not by the write ports?
   for (uint i=0; i<this->writePort.size(); i++) {
     if (this->writePort[i].inProgress()) {
       fifos[this->writePort[i].reg()].write(this->writePort[i].result());
@@ -95,15 +94,20 @@ void InputFIFOs::processRequests() {
     checkBitmask();  // For selch instruction.
   }
 
-  // TODO: warn if reading from the same FIFO multiple times.
-  for (uint i=0; i<this->readPort.size(); i++)
-    if (this->readPort[i].inProgress())
+  std::set<ChannelIndex> portsRead;
+  for (uint i=0; i<this->readPort.size(); i++) {
+    if (this->readPort[i].inProgress()) {
+      loki_assert_with_message(portsRead.find(i) == portsRead.end(),
+          "Read from input channel %d twice", i);
       this->readPort[i].setResult(fifos[this->readPort[i].reg()].read().payload().toInt());
+      portsRead.insert(i);
+    }
+  }
 }
 
 void InputFIFOs::checkBitmask() {
   if (bitmask == 0)
-    return;
+    return; // TODO: does the event need to be triggered, or is a 0 bitmask invalid?
 
   for (uint i=0; i<fifos.size(); i++) {
     RegisterIndex buffer = ++currentChannel;

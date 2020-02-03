@@ -64,8 +64,13 @@ Scratchpad::Scratchpad(sc_module_name name,
 
 ChannelMapTable::ChannelMapTable(sc_module_name name,
                                  const channel_map_table_parameters_t& params) :
-    RegisterFileBase<ChannelMapEntry, EncodedCMTEntry, EncodedCMTEntry>(name, 1, 1, 0),
+    RegisterFileBase<ChannelMapEntry, EncodedCMTEntry, EncodedCMTEntry>(name, 2, 1, 0, true, false),
     iCreditFIFO("credits", 1) {  // More of a register than a FIFO
+
+  // There are two parts of the core which may need to read the CMT:
+  //  * Reads which allow data to be sent on the network happen in Decode
+  //  * Reads for the getchmap instruction happen in Execute
+  // Two read ports are provided, but the Execute port is given priority.
 
   // Need to bypass the normal constructor so we can provide arguments when
   // initialising stored data. Argument = network address on credit network.

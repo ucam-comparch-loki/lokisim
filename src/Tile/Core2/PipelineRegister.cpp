@@ -10,29 +10,31 @@
 #include "../../Utility/Assert.h"
 #include "../../Utility/Instrumentation/PipelineReg.h"
 
+namespace Compute {
+
 bool PipelineRegister::canWrite() const {
-  return !valid;
+  return !(bool)data;
 }
 
 void PipelineRegister::write(const DecodedInstruction inst) {
 //  if (ENERGY_TRACE)
 //    Instrumentation::PipelineReg::activity(data, inst, position);
 
-  loki_assert(!valid);
+  loki_assert(canWrite());
   data = inst;
-  valid = true;
-  writeEvent.notify();
+  writeEvent.notify(sc_core::SC_ZERO_TIME); // TODO: verify time delay
 }
 
 bool PipelineRegister::canRead() const {
-  return valid;
+  return (bool)data;
 }
 
 const DecodedInstruction PipelineRegister::read() {
-  loki_assert(valid);
-  readEvent.notify();
-  valid = false;
-  return data;
+  loki_assert(canRead());
+  readEvent.notify(sc_core::SC_ZERO_TIME); // TODO: verify time delay
+  const DecodedInstruction result = data;
+  data.reset();
+  return result;
 }
 
 const sc_event& PipelineRegister::canReadEvent() const {
@@ -44,21 +46,23 @@ const sc_event& PipelineRegister::canWriteEvent() const {
 }
 
 bool PipelineRegister::discard() {
-  readEvent.notify();
+  readEvent.notify(sc_core::SC_ZERO_TIME); // TODO: verify time delay
 
-  if (!valid)
+  if (!canRead())
     return false;
   else {
-    valid = false;
+    data.reset();
     return true;
   }
 }
 
 PipelineRegister::PipelineRegister(const sc_module_name& name,
                                    const PipelinePosition pos) :
-  LokiComponent(name),
-  position(pos) {
+    LokiComponent(name),
+    position(pos) {
 
-  valid = false;
+  // Nothing
 
 }
+
+} // end namespace

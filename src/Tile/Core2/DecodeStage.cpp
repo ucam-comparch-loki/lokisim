@@ -16,7 +16,7 @@ DecodeStage::DecodeStage(sc_module_name name) :
     readRegHandler1("reg1", REGISTER_PORT_1),
     readRegHandler2("reg2", REGISTER_PORT_2),
     readPredicateHandler("predicate"),
-    readCMTHandler("cmt"),
+    readCMTHandler("cmt", REGISTER_PORT_2), // Port 2: EXECUTE has read priority
     wocheHandler("credits"),
     selchHandler("buffers") {
 
@@ -24,36 +24,55 @@ DecodeStage::DecodeStage(sc_module_name name) :
 
 }
 
+// Verilog approach:
+//  * ALWAYS stall if the previous instruction updates predicate and this
+//    instruction is predicated (even if the instruction does nothing in this
+//    stage)
+//  * Other stalls (selch/woche/channel read/...) use the old predicate value
+//    and rely on the above condition blocking any dangerous state change
+//
+// Stall reasons:
+//  * Waiting for predicate
+//  * Reading empty FIFO
+//  * Sending to local core, but flow control signals show no FIFO space
+//  * Sending to remote core, but no credits
+//  * Structural hazard at CMT (previous inst was getchmap, this inst does normal read)
+//  * Selch, woche
+//
+// Of these, we only need to handle the predicate here. Everything else is
+// handled when accessing the respective modules.
 void DecodeStage::execute() {
   if (remoteMode) {
+    bool eop = instruction->isEndOfPacket();
+
     // TODO: set destination
     //      (or create new instruction type for remote execution?)
-    // TODO: check for EOP and endRemoteExecution()
+
+    if (eop)
+      endRemoteExecution();
+
+    previousInstruction.reset();
   }
-  // TODO
-  // else if previous instruction writes predicate
-  //         and this instruction reads predicate
-  //         and modifies state in this stage (reads channel, stalls on selch/woche)
-  //   wait for that instruction to update the predicate
-  // else if this instruction sends on network and there aren't enough credits
-  //   wait for credits
-  //   possibly set off register reads, etc. and just block at the end?
+  // Stall a cycle if we need a predicate that the previous instruction has yet
+  // to compute.
+  else if (instruction->isPredicated() && previousInstruction
+        && previousInstruction->writesPredicate()
+        && !previousInstruction->completedPhase(InstructionInterface::INST_PRED_WRITE)) {
+    next_trigger(clock.posedge_event());
+  }
   else {
 
+    instruction->readPredicate();
     instruction->readRegisters();
     instruction->readCMT();
-    instruction->readPredicate(); // ??
     instruction->earlyCompute();
 
-    previous = instruction;
+    previousInstruction = instruction;
 
   }
 }
 
 void DecodeStage::computeLatency(opcode_t opcode, function_t fn) {
-  // TODO: include a list of operations which are supported here?
-  // Helps catch issues with instructions executing at the wrong time, but
-  // creates a list which needs to be maintained.
   switch (opcode) {
     default:
       // TODO: 1 cycle wait
@@ -63,6 +82,9 @@ void DecodeStage::computeLatency(opcode_t opcode, function_t fn) {
 }
 
 void DecodeStage::readRegister(RegisterIndex index, RegisterPort port) {
+  // TODO: Create a separate ForwardingNetwork?
+  // All instructions need to be able to provide their source/destination registers.
+
   core().readRegister(index, port);
   switch (port) {
     case REGISTER_PORT_1: readRegHandler1.begin(instruction); break;
@@ -76,7 +98,8 @@ void DecodeStage::readPredicate() {
 }
 
 void DecodeStage::readCMT(RegisterIndex index) {
-  core().readCMT(index);
+  // Structural hazard: use port 2 so we defer priority to execute stage.
+  core().readCMT(index, REGISTER_PORT_2);
   readCMTHandler.begin(instruction);
 }
 

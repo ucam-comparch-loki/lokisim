@@ -167,6 +167,7 @@ public:
   bool isMulticast() const;
   bool isCore() const;
   bool isMemory() const;
+  static bool isMulticast(EncodedCMTEntry data);
   static bool isCore(EncodedCMTEntry data);
   static bool isMemory(EncodedCMTEntry data);
 

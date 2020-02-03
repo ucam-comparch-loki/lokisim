@@ -14,6 +14,7 @@
 #include "../../ISA/CoreInterface.h"
 #include "../../ISA/InstructionDecode.h"
 #include "../../LokiComponent.h"
+#include "PipelineRegister.h"
 
 namespace Compute {
 

@@ -28,7 +28,7 @@ public:
     this->startingPhase(this->INST_COMPUTE);
     checkIfFinished();
   }
-  void computeCallback(int32_t unused) {
+  void creditArrivedCallback() {
     // A credit has arrived - see if we have finished yet.
     checkIfFinished();
   }

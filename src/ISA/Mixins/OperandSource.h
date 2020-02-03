@@ -59,6 +59,7 @@ template<class T>
 class HasResult : public T {
 public:
   HasResult(Instruction encoded) : T(encoded) {result = -1;}
+  int32_t getResult() const {return result;}
 protected:
   int32_t result;
 };
@@ -79,6 +80,10 @@ public:
   void writeRegistersCallback() {
     this->finishedPhase(this->INST_REG_WRITE);
   }
+
+  RegisterIndex getDestinationRegister() const {
+    return this->destinationRegister;
+  }
 };
 
 
@@ -98,6 +103,17 @@ public:
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else
+      return T::getSourceRegister(port);
   }
 };
 
@@ -121,6 +137,17 @@ public:
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg2;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:
@@ -150,6 +177,17 @@ public:
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:
@@ -187,6 +225,19 @@ public:
       this->finishedPhase(this->INST_REG_READ);
   }
 
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else if (port == REGISTER_PORT_2)
+      return this->reg2;
+    else
+      return T::getSourceRegister(port);
+  }
+
 protected:
   int operandsReceived;
 };
@@ -220,6 +271,19 @@ public:
 
     if (operandsReceived == 2)
       this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg2;
+    else if (port == REGISTER_PORT_2)
+      return this->reg3;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:
@@ -275,6 +339,17 @@ public:
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
   }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else
+      return T::getSourceRegister(port);
+  }
 };
 
 
@@ -298,6 +373,17 @@ public:
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg2;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:
@@ -327,6 +413,17 @@ public:
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:
@@ -363,6 +460,19 @@ public:
 
     if (operandsReceived == 2)
       this->finishedPhase(this->INST_REG_READ);
+  }
+
+  bool readsRegister(RegisterPort port) const {
+    return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
+  }
+
+  RegisterIndex getSourceRegister(RegisterPort port) const {
+    if (port == REGISTER_PORT_1)
+      return this->reg1;
+    else if (port == REGISTER_PORT_2)
+      return this->reg2;
+    else
+      return T::getSourceRegister(port);
   }
 
 protected:

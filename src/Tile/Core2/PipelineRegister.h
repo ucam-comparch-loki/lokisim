@@ -22,6 +22,8 @@
 #include "../../LokiComponent.h"
 #include "../../Network/FIFOs/FIFO.h"
 
+namespace Compute {
+
 class core_pipeline_consumer_ifc : virtual public sc_interface {
 public:
   // Can an instruction be read?
@@ -94,7 +96,7 @@ public:
 
   // Is this register ready to receive the next instruction?
   virtual bool canWrite() const;
-  virtual void write(const DecodedInst& inst);
+  virtual void write(const DecodedInstruction inst);
 
   // Is this register ready to provide the next instruction?
   virtual bool canRead() const;
@@ -114,12 +116,13 @@ public:
 private:
 
   DecodedInstruction data;
-  bool valid;
 
   sc_event readEvent, writeEvent;
 
   const PipelinePosition position;
 
 };
+
+} // end namespace
 
 #endif /* PIPELINEREGISTER_H_ */
