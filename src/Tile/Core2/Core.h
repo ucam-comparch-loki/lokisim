@@ -21,6 +21,7 @@
 #include "WriteStage.h"
 #include "Storage.h"
 #include "FIFOArray.h"
+#include "ForwardingNetwork.h"
 #include "PipelineRegister.h"
 #include "SystemCall.h"
 
@@ -171,6 +172,7 @@ private:
   WriteStage             writeStage;
 
   PipelineRegister       pipeReg1, pipeReg2, pipeReg3;
+  ForwardingNetwork      forwarding;
 
   // Storage structures.
   RegisterFile           registers;

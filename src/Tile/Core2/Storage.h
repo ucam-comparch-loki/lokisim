@@ -136,8 +136,16 @@ private:
 
 class RegisterFile : public RegisterFileBase<int32_t> {
 public:
-  RegisterFile(sc_module_name name, const register_file_parameters_t& params);
+  RegisterFile(sc_module_name name,
+               const register_file_parameters_t& params,
+               uint numFIFOs);
   void read(RegisterIndex reg, RegisterPort port);
+
+  bool isReadOnly(RegisterIndex reg) const;
+  bool isFIFOMapped(RegisterIndex reg) const;
+  bool isStandard(RegisterIndex reg) const; // i.e. not read-only or a FIFO
+private:
+  const uint numFIFOs;
 };
 
 class Scratchpad : public RegisterFileBase<int32_t> {

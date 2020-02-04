@@ -28,7 +28,8 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
     pipeReg1("pipe_reg1", PipelineRegister::FETCH_DECODE),
     pipeReg2("pipe_reg2", PipelineRegister::DECODE_EXECUTE),
     pipeReg3("pipe_reg3", PipelineRegister::EXECUTE_WRITE),
-    registers("regs", params.registerFile),
+    forwarding("forward", params.registerFile.size),
+    registers("regs", params.registerFile, params.numInputChannels - 2),
     scratchpad("scratchpad", params.scratchpad),
     channelMapTable("cmt", params.channelMapTable),
     controlRegisters("cregs"),
@@ -66,10 +67,23 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
 }
 
 void Core::readRegister(RegisterIndex index, RegisterPort port) {
-  registers.read(index, port);
+  if (registers.isReadOnly(index))
+    registers.read(index, port);
+  else if (registers.isFIFOMapped(index))
+    iDataFIFOs.read(index - 2, port);
+  else if (forwarding.requiresForwarding(instruction, port))
+    forwarding.addConsumer(instruction, port);
+  else
+    registers.read(index, port);
 }
+
 void Core::writeRegister(RegisterIndex index, RegisterFile::write_t value) {
+  loki_assert(!registers.isReadOnly(index));
+  loki_assert(!registers.isFIFOMapped(index));
+
   registers.write(index, value);
+  // Could also remove this instruction from the forwarding network at this
+  // point.
 }
 
 void Core::readPredicate() {
@@ -153,6 +167,7 @@ bool Core::inputFIFOHasData(ChannelIndex fifo) const {
 
 
 const sc_event& Core::readRegistersEvent(RegisterPort port) const {
+  // TODO: may need to access FIFOs or forwarding network instead.
   return registers.readPort[port].finished();
 }
 const sc_event& Core::wroteRegistersEvent(RegisterPort port) const {

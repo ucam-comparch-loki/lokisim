@@ -24,8 +24,10 @@ const ComponentID& RegisterFileBase<stored_type, read_type, write_type>::id() co
 }
 
 RegisterFile::RegisterFile(sc_module_name name,
-                           const register_file_parameters_t& params) :
-    RegisterFileBase<int32_t>(name, 2, 1, params.size) {
+                           const register_file_parameters_t& params,
+                           uint numFIFOs) :
+    RegisterFileBase<int32_t>(name, 2, 1, params.size),
+    numFIFOs(numFIFOs) {
   // Nothing
 }
 
@@ -41,6 +43,7 @@ void RegisterFile::read(RegisterIndex reg, RegisterPort port) {
     case 1: readPort[port].setResult(data[1]); break;
 
     // Network FIFOs.
+    // TODO: use numFIFOs parameter.
     case 2:
     case 3:
     case 4:
@@ -52,6 +55,18 @@ void RegisterFile::read(RegisterIndex reg, RegisterPort port) {
     // All other registers: wait for processRequests to kick in.
     default: break;
   }
+}
+
+bool RegisterFile::isReadOnly(RegisterIndex reg) const {
+  return reg < 2;
+}
+
+bool RegisterFile::isFIFOMapped(RegisterIndex reg) const {
+  return (reg >= 2) && (reg < (2 + numFIFOs));
+}
+
+bool RegisterFile::isStandard(RegisterIndex reg) const {
+  return reg >= (2 + numFIFOs);
 }
 
 
