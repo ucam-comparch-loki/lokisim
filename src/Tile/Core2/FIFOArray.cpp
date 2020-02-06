@@ -35,14 +35,18 @@ InputFIFOs::InputFIFOs(sc_module_name name, size_t numFIFOs,
 
 }
 
-bool InputFIFOs::hasData(RegisterIndex fifo) const {
-  return fifos[fifo].canRead();
+void InputFIFOs::selectChannelWithData(DecodedInstruction inst, uint bitmask) {
+  loki_assert(bitmask != 0);
+  loki_assert(!selchInst);
+
+  this->bitmask = bitmask;
+  selchInst = inst;
+
+  checkBitmask();
 }
 
-void InputFIFOs::selectChannelWithData(uint bitmask) {
-  loki_assert(bitmask != 0);
-  this->bitmask = bitmask;
-  checkBitmask();
+bool InputFIFOs::hasData(RegisterIndex fifo) const {
+  return fifos[fifo].canRead();
 }
 
 RegisterIndex InputFIFOs::getSelectedChannel() const {
@@ -53,10 +57,6 @@ RegisterIndex InputFIFOs::getSelectedChannel() const {
 
 const sc_event& InputFIFOs::anyDataArrivedEvent() const {
   return anyDataArrived;
-}
-
-const sc_event& InputFIFOs::selectedDataArrivedEvent() const {
-  return selectedDataArrived;
 }
 
 const int32_t& InputFIFOs::debugRead(RegisterIndex fifo) {
@@ -79,12 +79,13 @@ void InputFIFOs::processRequests() {
   bool newData = false;
 
   // Process writes first so reads see the latest data.
-  // FIXME: not sure this will ever be executed. Writing the FIFOs is done by
-  // the network, not by the write ports?
-  for (uint i=0; i<this->writePort.size(); i++) {
-    if (this->writePort[i].inProgress()) {
-      fifos[this->writePort[i].reg()].write(this->writePort[i].result());
-      this->writePort[i].notifyFinished();
+  for (uint port=0; port<this->writePort.size(); port++) {
+    if (this->writePort[port].inProgress()) {
+      fifos[this->writePort[port].reg()].write(this->writePort[port].result());
+
+      // No callback needed - no instruction can write to the input FIFOs.
+
+      this->writePort[port].clear();
       newData = true;
     }
   }
@@ -95,25 +96,30 @@ void InputFIFOs::processRequests() {
   }
 
   std::set<ChannelIndex> portsRead;
-  for (uint i=0; i<this->readPort.size(); i++) {
-    if (this->readPort[i].inProgress()) {
-      loki_assert_with_message(portsRead.find(i) == portsRead.end(),
-          "Read from input channel %d twice", i);
-      this->readPort[i].setResult(fifos[this->readPort[i].reg()].read().payload().toInt());
-      portsRead.insert(i);
+  for (uint port=0; port<this->readPort.size(); port++) {
+    if (this->readPort[port].inProgress()) {
+      loki_assert_with_message(portsRead.find(port) == portsRead.end(),
+          "Read from input channel %d twice", port);
+
+      RegisterIndex reg = this->readPort[port].reg();
+      read_t result = fifos[reg].read().payload().toInt();
+      this->readPort[port].instruction()->readRegistersCallback(port, result);
+      this->readPort[port].clear();
+      portsRead.insert(port);
     }
   }
 }
 
 void InputFIFOs::checkBitmask() {
   if (bitmask == 0)
-    return; // TODO: does the event need to be triggered, or is a 0 bitmask invalid?
+    return;
 
   for (uint i=0; i<fifos.size(); i++) {
     RegisterIndex buffer = ++currentChannel;
     if (fifos[buffer].canRead() && (bitmask & (1 << buffer))) {
-      selectedDataArrived.notify(sc_core::SC_ZERO_TIME);
+      selchInst->computeCallback(buffer);
       bitmask = 0;
+      selchInst.reset();
       break;
     }
   }
@@ -137,11 +143,11 @@ OutputFIFOs::OutputFIFOs(sc_module_name name, const fifo_parameters_t params) :
 
 }
 
-void OutputFIFOs::write(NetworkData value) {
+void OutputFIFOs::write(DecodedInstruction inst, NetworkData value) {
   if (value.channelID().multicast)
-    StorageBase<NetworkData>::write(1, value);
+    StorageBase<NetworkData>::write(inst, 1, value);
   else
-    StorageBase<NetworkData>::write(0, value);
+    StorageBase<NetworkData>::write(inst, 0, value);
 }
 
 const sc_event& OutputFIFOs::anyDataSentEvent() const {
@@ -164,17 +170,25 @@ void OutputFIFOs::processRequests() {
   }
 
   // Process writes first so reads see the latest data.
-  for (uint i=0; i<this->writePort.size(); i++) {
-    if (this->writePort[i].inProgress()) {
-      fifos[this->writePort[i].reg()].write(this->writePort[i].result());
-      this->writePort[i].notifyFinished();
+  for (uint port=0; port<this->writePort.size(); port++) {
+    if (this->writePort[port].inProgress()) {
+      fifos[this->writePort[port].reg()].write(this->writePort[port].result());
+      this->writePort[port].instruction()->sendNetworkDataCallback();
+      this->writePort[port].clear();
       anyDataSent.notify(sc_core::SC_ZERO_TIME);
     }
   }
 
-  for (uint i=0; i<this->readPort.size(); i++)
-    if (this->readPort[i].inProgress())
-      this->readPort[i].setResult(fifos[this->readPort[i].reg()].read());
+  for (uint port=0; port<this->readPort.size(); port++) {
+    if (this->readPort[port].inProgress()) {
+      RegisterIndex reg = this->readPort[port].reg();
+      read_t result = fifos[reg].read();
+
+      // No callback - no instruction can read from the output FIFOs.
+
+      this->readPort[port].clear();
+    }
+  }
 }
 
 } /* namespace Compute */

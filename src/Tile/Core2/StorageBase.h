@@ -10,10 +10,11 @@
  *      Author: db434
  */
 
-#ifndef SRC_TILE_CORE2_STORAGEBASE_H_
-#define SRC_TILE_CORE2_STORAGEBASE_H_
+#ifndef SRC_TILE_CORE_STORAGEBASE_H_
+#define SRC_TILE_CORE_STORAGEBASE_H_
 
 #include "../../ISA/CoreInterface.h"
+#include "../../ISA/InstructionDecode.h"
 #include "../../LokiComponent.h"
 #include "../../Utility/Assert.h"
 #include "../../Utility/LokiVector.h"
@@ -23,35 +24,37 @@
 template<typename T>
 class StorageReadPort : public LokiComponent {
 public:
-  StorageReadPort(sc_module_name name) :
-      LokiComponent(name) {
+  StorageReadPort(sc_module_name name, PortIndex port) :
+      LokiComponent(name),
+      position(port) {
     toRead = -1;
-    requestInProgress = false;
   }
 
-  void newRequest(RegisterIndex reg) {
-    loki_assert(!requestInProgress);
+  void newRequest(DecodedInstruction inst, RegisterIndex reg) {
+    loki_assert(!inProgress());
+
+    client = inst;
     toRead = reg;
-    requestInProgress = true;
     requestArrivedEvent.notify(sc_core::SC_ZERO_TIME);
   }
 
-  void setResult(T value) {
-    loki_assert(requestInProgress);
-    data = value;
-    requestInProgress = false;
-    finishedEvent.notify(sc_core::SC_ZERO_TIME);
+  void clear() {
+    loki_assert(inProgress());
+    client.reset();
   }
 
   RegisterIndex reg() const {return toRead;}
-  bool inProgress() const {return requestInProgress;}
+  bool inProgress() const {return client;}
   T result() const {return data;}
+  DecodedInstruction instruction() const {return client;}
   const sc_core::sc_event& finished() const {return finishedEvent;}
   const sc_core::sc_event& requestArrived() const {return requestArrivedEvent;}
 
 private:
+  const PortIndex position;
+
+  DecodedInstruction client;
   RegisterIndex toRead;
-  bool requestInProgress;
   T data;
 
   sc_core::sc_event requestArrivedEvent;
@@ -61,35 +64,38 @@ private:
 template<typename T>
 class StorageWritePort : public LokiComponent {
 public:
-  StorageWritePort(sc_module_name name) :
-      LokiComponent(name) {
+  StorageWritePort(sc_module_name name, PortIndex port) :
+      LokiComponent(name),
+      position(port) {
     toWrite = -1;
-    requestInProgress = false;
   }
 
-  void newRequest(RegisterIndex reg, T value) {
-    loki_assert(!requestInProgress);
+  void newRequest(DecodedInstruction inst, RegisterIndex reg, T value) {
+    loki_assert(!inProgress());
+
+    client = inst;
     toWrite = reg;
     data = value;
-    requestInProgress = true;
     requestArrivedEvent.notify(sc_core::SC_ZERO_TIME);
   }
 
-  void notifyFinished() {
-    loki_assert(requestInProgress);
-    requestInProgress = false;
-    finishedEvent.notify(sc_core::SC_ZERO_TIME);
+  void clear() {
+    loki_assert(inProgress());
+    client.reset();
   }
 
   RegisterIndex reg() const {return toWrite;}
-  bool inProgress() const {return requestInProgress;}
+  bool inProgress() const {return client;}
   T result() const {return data;}
+  DecodedInstruction instruction() const {return client;}
   const sc_core::sc_event& finished() const {return finishedEvent;}
   const sc_core::sc_event& requestArrived() const {return requestArrivedEvent;}
 
 private:
+  const PortIndex position;
+
+  DecodedInstruction client;
   RegisterIndex toWrite;
-  bool requestInProgress;
   T data;
 
   sc_core::sc_event requestArrivedEvent;
@@ -115,10 +121,8 @@ public:
 
   ClockInput clock;
 
-  // Not sure if I want full SystemC ports for inputs and outputs, or something
-  // simpler.
-  LokiVector<StorageReadPort<read_type>> readPort;
-  LokiVector<StorageWritePort<write_type>> writePort;
+  LokiVector<StorageReadPort<read_t>> readPort;
+  LokiVector<StorageWritePort<write_t>> writePort;
 
 //============================================================================//
 // Constructors and destructors
@@ -152,24 +156,25 @@ public:
 
   // Read a register. The process is asynchronous. The result will be returned
   // to readPort[port] at some point later, and an event triggered.
-  void read(RegisterIndex reg, RegisterPort port=REGISTER_PORT_1) {
-    readPort[port].newRequest(reg);
+  void read(DecodedInstruction inst, RegisterIndex reg, PortIndex port=0) {
+    readPort[port].newRequest(inst, reg);
   }
 
   // Write a register. The process is asynchronous. When complete, an event
   // will be triggered in writePort[port].
-  void write(RegisterIndex reg, write_type value, RegisterPort port=REGISTER_PORT_1) {
-    writePort[port].newRequest(reg, value);
+  void write(DecodedInstruction inst, RegisterIndex reg, write_t value,
+             PortIndex port=0) {
+    writePort[port].newRequest(inst, reg, value);
   }
 
   // Read which bypasses all normal processes and completes immediately.
-  const read_type& debugRead(RegisterIndex reg) {
+  const read_t& debugRead(RegisterIndex reg) {
     loki_assert(false);
-    return *(new read_type());
+    return *(new read_t());
   }
 
   // Write which bypasses all normal processes and completes immediately.
-  void debugWrite(RegisterIndex reg, write_type value) {
+  void debugWrite(RegisterIndex reg, write_t value) {
     loki_assert(false);
   }
 

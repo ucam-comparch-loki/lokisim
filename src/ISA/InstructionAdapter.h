@@ -37,7 +37,7 @@ public:
   virtual bool isEndOfPacket() const {return T::isEndOfPacket();}
 
   // Does this instruction read from the register file?
-  virtual bool readsRegister(RegisterPort port) const {
+  virtual bool readsRegister(PortIndex port) const {
     return T::readsRegister(port);
   }
 
@@ -76,7 +76,7 @@ public:
 
 
   // Return the index of the register read from the given port.
-  virtual RegisterIndex getSourceRegister(RegisterPort port) const {
+  virtual RegisterIndex getSourceRegister(PortIndex port) const {
     return T::getSourceRegister(port);
   }
 
@@ -106,13 +106,15 @@ public:
 
   // Read registers, including register-mapped input FIFOs.
   virtual void readRegisters() {T::readRegisters();}
-  virtual void readRegistersCallback(RegisterPort port, int32_t value) {
+  virtual void readRegistersCallback(PortIndex port, int32_t value) {
     T::readRegistersCallback(port, value);
   }
 
   // Write to the register file.
   virtual void writeRegisters() {T::writeRegisters();}
-  virtual void writeRegistersCallback() {T::writeRegistersCallback();}
+  virtual void writeRegistersCallback(PortIndex port) {
+    T::writeRegistersCallback(port);
+  }
 
   // Computation which happens before the execute stage (e.g. fetch, selch).
   virtual void earlyCompute() {T::earlyCompute();}
@@ -126,41 +128,47 @@ public:
 
   // Read channel map table.
   virtual void readCMT() {T::readCMT();}
-  virtual void readCMTCallback(EncodedCMTEntry value) {
-    T::readCMTCallback(value);
+  virtual void readCMTCallback(PortIndex port, EncodedCMTEntry value) {
+    T::readCMTCallback(port, value);
   }
 
   // Write to the channel map table.
   virtual void writeCMT() {T::writeCMT();}
-  virtual void writeCMTCallback() {T::writeCMTCallback();}
+  virtual void writeCMTCallback(PortIndex port) {T::writeCMTCallback(port);}
 
   // Read the core-local scratchpad.
   virtual void readScratchpad() {T::readScratchpad();}
-  virtual void readScratchpadCallback(int32_t value) {
-    T::readScratchpadCallback(value);
+  virtual void readScratchpadCallback(PortIndex port, int32_t value) {
+    T::readScratchpadCallback(port, value);
   }
 
   // Write to the core-local scratchpad.
   virtual void writeScratchpad() {T::writeScratchpad();}
-  virtual void writeScratchpadCallback() {T::writeScratchpadCallback();}
+  virtual void writeScratchpadCallback(PortIndex port) {
+    T::writeScratchpadCallback(port);
+  }
 
   // Read the control registers.
   virtual void readCregs() {T::readCregs();}
-  virtual void readCregsCallback(int32_t value) {T::readCregsCallback(value);}
+  virtual void readCregsCallback(PortIndex port, int32_t value) {
+    T::readCregsCallback(value);
+  }
 
   // Write to the control registers.
   virtual void writeCregs() {T::writeCregs();}
-  virtual void writeCregsCallback() {T::writeCregsCallback();}
+  virtual void writeCregsCallback(PortIndex port) {T::writeCregsCallback(port);}
 
   // Read the control registers.
   virtual void readPredicate() {T::readPredicate();}
-  virtual void readPredicateCallback(bool value) {
-    T::readPredicateCallback(value);
+  virtual void readPredicateCallback(PortIndex port, bool value) {
+    T::readPredicateCallback(port, value);
   }
 
   // Write to the predicate register.
   virtual void writePredicate() {T::writePredicate();}
-  virtual void writePredicateCallback() {T::writePredicateCallback();}
+  virtual void writePredicateCallback(PortIndex port) {
+    T::writePredicateCallback(port);
+  }
 
   // Send data onto the network.
   virtual void sendNetworkData() {T::sendNetworkData();}

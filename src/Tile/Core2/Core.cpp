@@ -66,96 +66,92 @@ Core::Core(const sc_module_name& name, const ComponentID& ID,
 
 }
 
-void Core::readRegister(RegisterIndex index, RegisterPort port) {
+void Core::readRegister(DecodedInstruction inst, RegisterIndex index,
+                        PortIndex port) {
   if (registers.isReadOnly(index))
-    registers.read(index, port);
+    registers.read(inst, index, port);
   else if (registers.isFIFOMapped(index))
-    iDataFIFOs.read(index - 2, port);
-  else if (forwarding.requiresForwarding(instruction, port))
-    forwarding.addConsumer(instruction, port);
+    iDataFIFOs.read(inst, index - 2, port);
+  else if (forwarding.requiresForwarding(inst, port))
+    forwarding.addConsumer(inst, port);
   else
-    registers.read(index, port);
+    registers.read(inst, index, port);
 }
 
-void Core::writeRegister(RegisterIndex index, RegisterFile::write_t value) {
+void Core::writeRegister(DecodedInstruction inst, RegisterIndex index,
+                         RegisterFile::write_t value) {
   loki_assert(!registers.isReadOnly(index));
   loki_assert(!registers.isFIFOMapped(index));
 
-  registers.write(index, value);
+  registers.write(inst, index, value);
   // Could also remove this instruction from the forwarding network at this
   // point.
 }
 
-void Core::readPredicate() {
-  predicate.read();
+void Core::readPredicate(DecodedInstruction inst) {
+  predicate.read(inst);
 }
-void Core::writePredicate(PredicateRegister::write_t value) {
-  predicate.write(value);
+void Core::writePredicate(DecodedInstruction inst,
+                          PredicateRegister::write_t value) {
+  predicate.write(inst, value);
 }
 
-void Core::fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
+void Core::fetch(DecodedInstruction inst, MemoryAddr address,
+                 ChannelMapEntry::MemoryChannel channel,
                  bool execute, bool persistent) {
   // TODO
 }
-void Core::jump(JumpOffset offset) {
+void Core::jump(DecodedInstruction inst, JumpOffset offset) {
   // TODO
 }
 
-void Core::computeLatency(opcode_t opcode, function_t fn) {
-  LOKI_ERROR << "Can't compute in " << this->name() << endl;
-  loki_assert(false);
+void Core::readCMT(DecodedInstruction inst, RegisterIndex index,
+                   PortIndex port) {
+  channelMapTable.read(inst, index, port);
+}
+void Core::writeCMT(DecodedInstruction inst, RegisterIndex index,
+                    ChannelMapTable::write_t value) {
+  channelMapTable.write(inst, index, value);
 }
 
-void Core::readCMT(RegisterIndex index, RegisterPort port) {
-  channelMapTable.read(index, port);
+void Core::readCreg(DecodedInstruction inst, RegisterIndex index) {
+  controlRegisters.read(inst, index);
 }
-void Core::writeCMT(RegisterIndex index, ChannelMapTable::write_t value) {
-  channelMapTable.write(index, value);
-}
-
-void Core::readCreg(RegisterIndex index) {
-  controlRegisters.read(index);
-}
-void Core::writeCreg(RegisterIndex index, ControlRegisters::write_t value) {
-  controlRegisters.write(index, value);
+void Core::writeCreg(DecodedInstruction inst, RegisterIndex index,
+                     ControlRegisters::write_t value) {
+  controlRegisters.write(inst, index, value);
 }
 
-void Core::readScratchpad(RegisterIndex index) {
-  scratchpad.read(index);
+void Core::readScratchpad(DecodedInstruction inst, RegisterIndex index) {
+  scratchpad.read(inst, index);
 }
-void Core::writeScratchpad(RegisterIndex index, Scratchpad::write_t value) {
-  scratchpad.write(index, value);
+void Core::writeScratchpad(DecodedInstruction inst, RegisterIndex index,
+                           Scratchpad::write_t value) {
+  scratchpad.write(inst, index, value);
 }
 
-void Core::syscall(int code) {
+void Core::syscall(DecodedInstruction inst, int code) {
   systemCallHandler.call((SystemCall::Code)code);
+
+  // Instant execution. TODO: add latency to syscalls.
+  inst->computeCallback(0); // Dummy result to satisfy interface.
 }
 
-void Core::selectChannelWithData(uint bitmask) {
-  iDataFIFOs.selectChannelWithData(bitmask);
+void Core::selectChannelWithData(DecodedInstruction inst, uint bitmask) {
+  iDataFIFOs.selectChannelWithData(inst, bitmask);
 }
 
-void Core::sendOnNetwork(NetworkData flit) {
-  oDataFIFOs.write(flit);
+void Core::sendOnNetwork(DecodedInstruction inst, NetworkData flit) {
+  oDataFIFOs.write(inst, flit);
 }
+void Core::waitForCredit(DecodedInstruction inst, ChannelIndex channel) {
+  channelMapTable.waitForCredit(inst, channel);
+}
+
+
 uint Core::creditsAvailable(ChannelIndex channel) const {
   return channelMapTable.creditsAvailable(channel);
 }
-void Core::waitForCredit(ChannelIndex channel) {
-  LOKI_ERROR << "Can't wait for credits from " << this->name() << endl;
-  loki_assert(false);
-}
-
-void Core::startRemoteExecution(ChannelID address) {
-  LOKI_ERROR << "Can't start remote execution from " << this->name() << endl;
-  loki_assert(false);
-}
-void Core::endRemoteExecution() {
-  LOKI_ERROR << "Can't end remote execution from " << this->name() << endl;
-  loki_assert(false);
-}
-
-
 ChannelID Core::getNetworkDestination(EncodedCMTEntry channelMap,
                                       MemoryAddr address) const {
   return memoryBankSelector.getNetworkAddress(channelMap, address);
@@ -163,73 +159,6 @@ ChannelID Core::getNetworkDestination(EncodedCMTEntry channelMap,
 
 bool Core::inputFIFOHasData(ChannelIndex fifo) const {
   return iDataFIFOs.hasData(fifo);
-}
-
-
-const sc_event& Core::readRegistersEvent(RegisterPort port) const {
-  // TODO: may need to access FIFOs or forwarding network instead.
-  return registers.readPort[port].finished();
-}
-const sc_event& Core::wroteRegistersEvent(RegisterPort port) const {
-  return registers.writePort[port].finished();
-}
-const sc_event& Core::computeFinishedEvent() const {
-  // TODO
-}
-const sc_event& Core::readCMTEvent(RegisterPort port) const {
-  return channelMapTable.readPort[port].finished();
-}
-const sc_event& Core::wroteCMTEvent(RegisterPort port) const {
-  return channelMapTable.writePort[port].finished();
-}
-const sc_event& Core::readScratchpadEvent(RegisterPort port) const {
-  return scratchpad.readPort[port].finished();
-}
-const sc_event& Core::wroteScratchpadEvent(RegisterPort port) const {
-  return scratchpad.writePort[port].finished();
-}
-const sc_event& Core::readCRegsEvent(RegisterPort port) const {
-  return controlRegisters.readPort[port].finished();
-}
-const sc_event& Core::wroteCRegsEvent(RegisterPort port) const {
-  return controlRegisters.writePort[port].finished();
-}
-const sc_event& Core::readPredicateEvent(RegisterPort port) const {
-  return predicate.readPort[port].finished();
-}
-const sc_event& Core::wrotePredicateEvent(RegisterPort port) const {
-  return predicate.writePort[port].finished();
-}
-const sc_event& Core::networkDataArrivedEvent() const {
-  return iDataFIFOs.anyDataArrivedEvent();
-}
-const sc_event& Core::sentNetworkDataEvent() const {
-  return oDataFIFOs.anyDataSentEvent();
-}
-const sc_event& Core::creditArrivedEvent() const {
-  return channelMapTable.creditArrivedEvent();
-}
-const sc_event& Core::selchFinishedEvent() const {
-  return iDataFIFOs.selectedDataArrivedEvent();
-}
-
-const RegisterFile::read_t      Core::getRegisterOutput(RegisterPort port) const {
-  return registers.readPort[port].result();
-}
-const ChannelMapTable::read_t   Core::getCMTOutput(RegisterPort port) const {
-  return channelMapTable.readPort[port].result();
-}
-const Scratchpad::read_t        Core::getScratchpadOutput(RegisterPort port) const {
-  return scratchpad.readPort[port].result();
-}
-const ControlRegisters::read_t  Core::getCRegOutput(RegisterPort port) const {
-  return controlRegisters.readPort[port].result();
-}
-const PredicateRegister::read_t Core::getPredicateOutput(RegisterPort port) const {
-  return predicate.readPort[port].result();
-}
-const RegisterIndex             Core::getSelectedChannel() const {
-  return iDataFIFOs.getSelectedChannel();
 }
 
 

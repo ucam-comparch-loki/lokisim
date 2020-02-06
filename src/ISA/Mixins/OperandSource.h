@@ -77,7 +77,7 @@ public:
     this->core->writeRegister(this->destinationRegister, this->result);
   }
 
-  void writeRegistersCallback() {
+  void writeRegistersCallback(PortIndex port) {
     this->finishedPhase(this->INST_REG_WRITE);
   }
 
@@ -99,7 +99,7 @@ public:
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
@@ -133,7 +133,7 @@ public:
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
@@ -173,7 +173,7 @@ public:
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
@@ -212,7 +212,7 @@ public:
     this->core->readRegister(this->reg2, REGISTER_PORT_2);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
         this->operand1 = value; break;
@@ -225,11 +225,11 @@ public:
       this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg1;
     else if (port == REGISTER_PORT_2)
@@ -260,7 +260,7 @@ public:
     this->core->readRegister(this->reg3, REGISTER_PORT_2);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
         this->operand1 = value; break;
@@ -273,11 +273,11 @@ public:
       this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg2;
     else if (port == REGISTER_PORT_2)
@@ -334,17 +334,17 @@ public:
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg1;
     else
@@ -369,17 +369,17 @@ public:
     this->core->readRegister(this->reg2, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg2;
     else
@@ -409,17 +409,17 @@ public:
     this->core->readRegister(this->reg1, REGISTER_PORT_1);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     assert(port == REGISTER_PORT_1);
     this->operand1 = value;
     this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg1;
     else
@@ -449,7 +449,7 @@ public:
     this->core->readRegister(this->reg2, REGISTER_PORT_2);
   }
 
-  void readRegistersCallback(RegisterPort port, int32_t value) {
+  void readRegistersCallback(PortIndex port, int32_t value) {
     switch (port) {
       case REGISTER_PORT_1:
         this->operand1 = value; break;
@@ -462,11 +462,11 @@ public:
       this->finishedPhase(this->INST_REG_READ);
   }
 
-  bool readsRegister(RegisterPort port) const {
+  bool readsRegister(PortIndex port) const {
     return port == REGISTER_PORT_1 || port == REGISTER_PORT_2;
   }
 
-  RegisterIndex getSourceRegister(RegisterPort port) const {
+  RegisterIndex getSourceRegister(PortIndex port) const {
     if (port == REGISTER_PORT_1)
       return this->reg1;
     else if (port == REGISTER_PORT_2)

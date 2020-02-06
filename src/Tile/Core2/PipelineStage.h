@@ -45,7 +45,7 @@ protected:
 
 public:
 
-  virtual void readRegister(RegisterIndex index, RegisterPort port);
+  virtual void readRegister(RegisterIndex index, PortIndex port);
   virtual void writeRegister(RegisterIndex index, int32_t value);
 
   virtual void readPredicate();

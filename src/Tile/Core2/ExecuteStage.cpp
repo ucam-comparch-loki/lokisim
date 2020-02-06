@@ -11,15 +11,7 @@
 namespace Compute {
 
 ExecuteStage::ExecuteStage(sc_module_name name) :
-    MiddlePipelineStage(name),
-    computeHandler("compute"),
-    readCMTHandler("readCMT", REGISTER_PORT_1), // Port 1: have read priority over DECODE
-    writeCMTHandler("writeCMT"),
-    readCregsHandler("readCregs"),
-    writeCregsHandler("writeCregs"),
-    readScratchpadHandler("readSpad"),
-    writeScratchpadHandler("writeSpad"),
-    writePredicateHandler("writePred") {
+    MiddlePipelineStage(name) {
   // Nothing
 }
 
@@ -44,50 +36,39 @@ void ExecuteStage::computeLatency(opcode_t opcode, function_t fn) {
       // TODO: 1 cycle wait
       break;
   }
-  computeHandler.begin(instruction);
 }
 
 void ExecuteStage::readCMT(RegisterIndex index) {
-  core().readCMT(index);
-  readCMTHandler.begin(instruction);
+  // Structural hazard: use port 1 so we have priority over decode stage.
+  core().readCMT(instruction, index, 0);
 }
 
 void ExecuteStage::writeCMT(RegisterIndex index, EncodedCMTEntry value) {
-  core().writeCMT(index, value);
-  writeCMTHandler.begin(instruction);
+  core().writeCMT(instruction, index, value);
 }
 
 void ExecuteStage::readCreg(RegisterIndex index) {
-  // Structural hazard: use port 1 so we have priority over decode stage.
-  core().readCreg(index, REGISTER_PORT_1);
-  readCregsHandler.begin(instruction);
+  core().readCreg(instruction, index);
 }
 
 void ExecuteStage::writeCreg(RegisterIndex index, int32_t value) {
-  core().writeCreg(index, value);
-  writeCregsHandler.begin(instruction);
+  core().writeCreg(instruction, index, value);
 }
 
 void ExecuteStage::readScratchpad(RegisterIndex index) {
-  core().readScratchpad(index);
-  readScratchpadHandler.begin(instruction);
+  core().readScratchpad(instruction, index);
 }
 
 void ExecuteStage::writeScratchpad(RegisterIndex index, int32_t value) {
-  core().writeScratchpad(index, value);
-  writeScratchpadHandler.begin(instruction);
+  core().writeScratchpad(instruction, index, value);
 }
 
 void ExecuteStage::writePredicate(bool value) {
-  core().writePredicate(value);
-  writePredicateHandler.begin(instruction);
+  core().writePredicate(instruction, value);
 }
 
 void ExecuteStage::syscall(int code) {
-  core().syscall(code);
-  computeHandler.begin(instruction);
-  // TODO this requires waiting on a different event to the other use of
-  // computeHandler.
+  core().syscall(instruction, code);
 }
 
 } // end namespace

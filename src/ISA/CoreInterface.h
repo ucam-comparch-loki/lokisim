@@ -25,8 +25,8 @@
 // The ISA supports a maximum of 2 register reads per cycle, and 2 operands per
 // computation.
 enum RegisterPort {
-  REGISTER_PORT_1,
-  REGISTER_PORT_2
+  REGISTER_PORT_1 = 0,
+  REGISTER_PORT_2 = 1
 };
 
 const ChannelIndex ANY_CHANNEL = -1;
@@ -45,7 +45,7 @@ public:
   // register file is dual-ported, and each port is capable of supplying one
   // of the two ALU operands.
   // Call the instruction's `readRegistersCallback()` with the port and result.
-  virtual void readRegister(RegisterIndex index, RegisterPort port) = 0;
+  virtual void readRegister(RegisterIndex index, PortIndex port) = 0;
 
   // Write the given value to the given register.
   // Call the instruction's `writeRegistersCallback()` when done.

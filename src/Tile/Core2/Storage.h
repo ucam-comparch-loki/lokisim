@@ -16,7 +16,6 @@
 #define SRC_TILE_CORE_STORAGE_H_
 
 #include "StorageBase.h"
-#include "../../ISA/CoreInterface.h"
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../../Network/Interface.h"
 #include "../ChannelMapEntry.h"
@@ -54,15 +53,15 @@ protected:
 public:
 
   // Read which bypasses all normal processes and completes immediately.
-  const stored_type& debugRead(RegisterIndex reg) {
+  const read_t& debugRead(RegisterIndex reg) {
     return data[reg];
   }
-  const stored_type& debugRead(RegisterIndex reg) const {
+  const read_t& debugRead(RegisterIndex reg) const {
     return data[reg];
   }
 
   // Write which bypasses all normal processes and completes immediately.
-  void debugWrite(RegisterIndex reg, stored_type value) {
+  void debugWrite(RegisterIndex reg, write_t value) {
     data[reg] = value;
   }
 
@@ -78,7 +77,6 @@ protected:
     for (uint port=0; port<this->writePort.size(); port++) {
       if (this->writePort[port].inProgress()) {
         doWrite(port);
-        this->writePort[port].notifyFinished();
 
         if (prioritiseWrites) {
           next_trigger(this->clock.posedge_event());
@@ -99,18 +97,26 @@ protected:
     }
   }
 
-  // TODO: virtual? This should almost certainly be overridden if stored_type
-  // != write_type.
-  void doWrite(uint port) {
+  // Let an instruction know that its requested write operation has completed.
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port) = 0;
+
+  // Let an instruction know that its requested read operation has completed.
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result) = 0;
+
+  virtual void doWrite(PortIndex port) {
     // Default: copy data from the port to the data store.
     data[this->writePort[port].reg()] = this->writePort[port].result();
+    notifyWriteFinished(this->writePort[port].instruction(), port);
+    this->writePort[port].clear();
   }
 
-  // TODO: virtual? This should almost certainly be overridden if stored_type
-  // != read_type.
-  void doRead(uint port) {
+  virtual void doRead(PortIndex port) {
     // Default: copy data from the data store to the port.
-    this->readPort[port].setResult(data[this->readPort[port].reg()]);
+    RegisterIndex reg = this->readPort[port].reg();
+    read_t result = data[reg];
+    notifyReadFinished(this->readPort[port].instruction(), port, result);
+    this->readPort[port].clear();
   }
 
   const Core& core() const;
@@ -139,19 +145,29 @@ public:
   RegisterFile(sc_module_name name,
                const register_file_parameters_t& params,
                uint numFIFOs);
-  void read(RegisterIndex reg, RegisterPort port);
+  void read(DecodedInstruction inst, RegisterIndex reg, PortIndex port);
 
   bool isReadOnly(RegisterIndex reg) const;
   bool isFIFOMapped(RegisterIndex reg) const;
   bool isStandard(RegisterIndex reg) const; // i.e. not read-only or a FIFO
+protected:
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result);
 private:
   const uint numFIFOs;
 };
 
+
 class Scratchpad : public RegisterFileBase<int32_t> {
 public:
   Scratchpad(sc_module_name name, const scratchpad_parameters_t& params);
+protected:
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result);
 };
+
 
 class ChannelMapTable : public RegisterFileBase<ChannelMapEntry, EncodedCMTEntry, EncodedCMTEntry> {
 public:
@@ -163,26 +179,44 @@ public:
   ChannelMapTable(sc_module_name name,
                   const channel_map_table_parameters_t& params);
   uint creditsAvailable(ChannelIndex channel) const;
-  const sc_event& creditArrivedEvent() const;
+  void waitForCredit(DecodedInstruction inst, ChannelIndex channel);
 protected:
-  void doRead(uint port);
-  void doWrite(uint port);
+  virtual void doRead(uint port);
+  virtual void doWrite(uint port);
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result);
 private:
   void consumeCredit();
+  void notifyWaitingInstruction();
 
   NetworkFIFO<Word> iCreditFIFO;
+
+  // At most one instruction can be waiting for credits at a time.
+  DecodedInstruction instruction;
+  ChannelIndex blockingChannel;
 };
+
 
 class ControlRegisters : public RegisterFileBase<int32_t> {
 public:
   ControlRegisters(sc_module_name name);
+protected:
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result);
 };
+
 
 class PredicateRegister: public RegisterFileBase<bool> {
 public:
   PredicateRegister(sc_module_name name);
-  void read();
-  void write(bool value);
+  void read(DecodedInstruction inst);
+  void write(DecodedInstruction inst, bool value);
+protected:
+  virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
+  virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                  read_t result);
 };
 
 } // end namespace

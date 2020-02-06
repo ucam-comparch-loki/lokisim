@@ -29,7 +29,9 @@ class ComputeTile;
 
 namespace Compute {
 
-class Core: public LokiComponent, public CoreInterface {
+// TODO: don't implement CoreInterface, and instead pass DecodedInstructions
+// around to the various parts of the core.
+class Core: public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -75,68 +77,44 @@ public:
 
 public:
 
-  // Implement CoreInterface.
-  virtual void readRegister(RegisterIndex index, RegisterPort port);
-  virtual void writeRegister(RegisterIndex index, RegisterFile::write_t value);
+  void readRegister(DecodedInstruction inst, RegisterIndex index,
+                    PortIndex port);
+  void writeRegister(DecodedInstruction inst, RegisterIndex index,
+                     RegisterFile::write_t value);
 
-  virtual void readPredicate();
-  virtual void writePredicate(PredicateRegister::write_t value);
+  void readPredicate(DecodedInstruction inst);
+  void writePredicate(DecodedInstruction inst,
+                      PredicateRegister::write_t value);
 
-  virtual void fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
-                     bool execute, bool persistent);
-  virtual void jump(JumpOffset offset);
+  void fetch(DecodedInstruction inst, MemoryAddr address,
+             ChannelMapEntry::MemoryChannel channel, bool execute,
+             bool persistent);
+  void jump(DecodedInstruction inst, JumpOffset offset);
 
-  virtual void computeLatency(opcode_t opcode, function_t fn=(function_t)0);
+  void readCMT(DecodedInstruction inst, RegisterIndex index, PortIndex port);
+  void writeCMT(DecodedInstruction inst, RegisterIndex index,
+                ChannelMapTable::write_t value);
 
-  virtual void readCMT(RegisterIndex index, RegisterPort port);
-  virtual void writeCMT(RegisterIndex index, ChannelMapTable::write_t value);
+  void readCreg(DecodedInstruction inst, RegisterIndex index);
+  void writeCreg(DecodedInstruction inst, RegisterIndex index,
+                 ControlRegisters::write_t value);
 
-  virtual void readCreg(RegisterIndex index);
-  virtual void writeCreg(RegisterIndex index, ControlRegisters::write_t value);
+  void readScratchpad(DecodedInstruction inst, RegisterIndex index);
+  void writeScratchpad(DecodedInstruction inst, RegisterIndex index,
+                       Scratchpad::write_t value);
 
-  virtual void readScratchpad(RegisterIndex index);
-  virtual void writeScratchpad(RegisterIndex index, Scratchpad::write_t value);
+  void syscall(DecodedInstruction inst, int code);
 
-  virtual void syscall(int code);
+  void selectChannelWithData(DecodedInstruction inst, uint bitmask);
 
-  virtual void selectChannelWithData(uint bitmask);
-
-  virtual void sendOnNetwork(NetworkData flit);
-  virtual uint creditsAvailable(ChannelIndex channel) const;
-  virtual void waitForCredit(ChannelIndex channel);
-
-  virtual void startRemoteExecution(ChannelID address);
-  virtual void endRemoteExecution();
-
-
-  virtual ChannelID getNetworkDestination(EncodedCMTEntry channelMap,
-                                          MemoryAddr address=0) const;
-
-  virtual bool inputFIFOHasData(ChannelIndex fifo) const;
+  void sendOnNetwork(DecodedInstruction inst, NetworkData flit);
+  void waitForCredit(DecodedInstruction inst, ChannelIndex channel);
 
 
-  const sc_event& readRegistersEvent(RegisterPort port) const;
-  const sc_event& wroteRegistersEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& computeFinishedEvent() const;
-  const sc_event& readCMTEvent(RegisterPort port) const;
-  const sc_event& wroteCMTEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& readScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& wroteScratchpadEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& readCRegsEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& wroteCRegsEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& readPredicateEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& wrotePredicateEvent(RegisterPort port=REGISTER_PORT_1) const;
-  const sc_event& networkDataArrivedEvent() const;
-  const sc_event& sentNetworkDataEvent() const;
-  const sc_event& creditArrivedEvent() const;
-  const sc_event& selchFinishedEvent() const;
-
-  const RegisterFile::read_t      getRegisterOutput(RegisterPort port) const;
-  const ChannelMapTable::read_t   getCMTOutput(RegisterPort port) const;
-  const Scratchpad::read_t        getScratchpadOutput(RegisterPort port=REGISTER_PORT_1) const;
-  const ControlRegisters::read_t  getCRegOutput(RegisterPort port=REGISTER_PORT_1) const;
-  const PredicateRegister::read_t getPredicateOutput(RegisterPort port=REGISTER_PORT_1) const;
-  const RegisterIndex             getSelectedChannel() const;
+  uint creditsAvailable(ChannelIndex channel) const;
+  ChannelID getNetworkDestination(EncodedCMTEntry channelMap,
+                                  MemoryAddr address=0) const;
+  bool inputFIFOHasData(ChannelIndex fifo) const;
 
 
   // Debug interface which bypasses instrumentation, etc. and completes

@@ -74,7 +74,7 @@ public:
   virtual bool isEndOfPacket() const = 0;
 
   // Does this instruction read from the register file?
-  virtual bool readsRegister(RegisterPort port) const = 0;
+  virtual bool readsRegister(PortIndex port) const = 0;
 
   // Does this instruction write to the register file?
   virtual bool writesRegister() const = 0;
@@ -111,7 +111,7 @@ public:
 
 
   // Return the index of the register read from the given port.
-  virtual RegisterIndex getSourceRegister(RegisterPort port) const = 0;
+  virtual RegisterIndex getSourceRegister(PortIndex port) const = 0;
 
   // Return the index of the register written.
   virtual RegisterIndex getDestinationRegister() const = 0;
@@ -138,11 +138,11 @@ public:
 
   // Read registers, including register-mapped input FIFOs.
   virtual void readRegisters() = 0;
-  virtual void readRegistersCallback(RegisterPort port, int32_t value) = 0;
+  virtual void readRegistersCallback(PortIndex port, int32_t value) = 0;
 
   // Write to the register file.
   virtual void writeRegisters() = 0;
-  virtual void writeRegistersCallback() = 0;
+  virtual void writeRegistersCallback(PortIndex port) = 0;
 
   // Computation which happens before the execute stage (e.g. fetch, selch).
   virtual void earlyCompute() = 0;
@@ -154,35 +154,35 @@ public:
 
   // Read channel map table.
   virtual void readCMT() = 0;
-  virtual void readCMTCallback(EncodedCMTEntry value) = 0;
+  virtual void readCMTCallback(PortIndex port, EncodedCMTEntry value) = 0;
 
   // Write to the channel map table.
   virtual void writeCMT() = 0;
-  virtual void writeCMTCallback() = 0;
+  virtual void writeCMTCallback(PortIndex port) = 0;
 
   // Read the core-local scratchpad.
   virtual void readScratchpad() = 0;
-  virtual void readScratchpadCallback(int32_t value) = 0;
+  virtual void readScratchpadCallback(PortIndex port, int32_t value) = 0;
 
   // Write to the core-local scratchpad.
   virtual void writeScratchpad() = 0;
-  virtual void writeScratchpadCallback() = 0;
+  virtual void writeScratchpadCallback(PortIndex port) = 0;
 
   // Read the control registers.
   virtual void readCregs() = 0;
-  virtual void readCregsCallback(int32_t value) = 0;
+  virtual void readCregsCallback(PortIndex port, int32_t value) = 0;
 
   // Write to the control registers.
   virtual void writeCregs() = 0;
-  virtual void writeCregsCallback() = 0;
+  virtual void writeCregsCallback(PortIndex port) = 0;
 
   // Read the control registers.
   virtual void readPredicate() = 0;
-  virtual void readPredicateCallback(bool value) = 0;
+  virtual void readPredicateCallback(PortIndex port, bool value) = 0;
 
   // Write to the predicate register.
   virtual void writePredicate() = 0;
-  virtual void writePredicateCallback() = 0;
+  virtual void writePredicateCallback(PortIndex port) = 0;
 
   // Send data onto the network.
   virtual void sendNetworkData() = 0;

@@ -30,7 +30,7 @@ public:
     this->core->readPredicate();
   }
 
-  void readPredicateCallback(bool value) {
+  void readPredicateCallback(PortIndex port, bool value) {
     predicateBit = value;
     this->finishedPhase(this->INST_PRED_READ);
   }
@@ -65,7 +65,7 @@ public:
     this->core->writePredicate(newPredicate);
   }
 
-  void writePredicateCallback() {
+  void writePredicateCallback(PortIndex port) {
     this->finishedPhase(this->INST_PRED_WRITE);
   }
 
@@ -92,7 +92,7 @@ public:
       this->core->readCMT(this->outChannel);
   }
 
-  void readCMTCallback(EncodedCMTEntry value) {
+  void readCMTCallback(PortIndex port, EncodedCMTEntry value) {
     // Note: this method is reimplemented in the NetworkSend mix-in.
     // Any behaviour added here should also be added there.
     assert(this->outChannel != NO_CHANNEL);
@@ -121,7 +121,7 @@ public:
     this->core->writeCMT(entry, value);
   }
 
-  void writeCMTCallback() {
+  void writeCMTCallback(PortIndex port) {
     this->finishedPhase(this->INST_CMT_WRITE);
   }
 
@@ -141,7 +141,7 @@ public:
     this->core->readCreg(this->operand1);
   }
 
-  void readCregsCallback(int32_t value) {
+  void readCregsCallback(PortIndex port, int32_t value) {
     this->result = value;
     this->finishedPhase(this->INST_CREG_READ);
   }
@@ -163,7 +163,7 @@ public:
     this->core->writeCreg(entry, value);
   }
 
-  void writeCregsCallback() {
+  void writeCregsCallback(PortIndex port) {
     this->finishedPhase(this->INST_CREG_WRITE);
   }
 
@@ -183,7 +183,7 @@ public:
     this->core->readScratchpad(this->operand1);
   }
 
-  void readScratchpadCallback(int32_t value) {
+  void readScratchpadCallback(PortIndex port, int32_t value) {
     this->result = value;
     this->finishedPhase(this->INST_SPAD_READ);
   }
@@ -205,7 +205,7 @@ public:
     this->core->writeScratchpad(entry, value);
   }
 
-  void writeScratchpadCallback() {
+  void writeScratchpadCallback(PortIndex port) {
     this->finishedPhase(this->INST_SPAD_WRITE);
   }
 

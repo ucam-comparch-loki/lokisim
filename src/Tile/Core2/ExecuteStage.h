@@ -40,29 +40,6 @@ public:
   virtual void writePredicate(bool value);
   virtual void syscall(int code);
 
-//============================================================================//
-// Local state
-//============================================================================//
-
-private:
-  friend class ComputeHandler;
-  friend class ReadCMTHandler;
-  friend class WriteCMTHandler;
-  friend class ReadCRegsHandler;
-  friend class WriteCRegsHandler;
-  friend class ReadScratchpadHandler;
-  friend class WriteScratchpadHandler;
-  friend class WritePredicateHandler;
-
-  ComputeHandler computeHandler;
-  ReadCMTHandler readCMTHandler;
-  WriteCMTHandler writeCMTHandler;
-  ReadCRegsHandler readCregsHandler;
-  WriteCRegsHandler writeCregsHandler;
-  ReadScratchpadHandler readScratchpadHandler;
-  WriteScratchpadHandler writeScratchpadHandler;
-  WritePredicateHandler writePredicateHandler;
-
 };
 
 } // end namespace

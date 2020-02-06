@@ -46,15 +46,13 @@ public:
 
 public:
 
+  void selectChannelWithData(DecodedInstruction inst, uint bitmask);
+
   bool hasData(RegisterIndex fifo) const;
-  void selectChannelWithData(uint bitmask);
   RegisterIndex getSelectedChannel() const;
 
   // Event triggered whenever any data is written to any FIFO.
   const sc_event& anyDataArrivedEvent() const;
-
-  // Event triggered when data is written to one of the selected channels.
-  const sc_event& selectedDataArrivedEvent() const;
 
   // Read which bypasses all normal processes and completes immediately.
   const int32_t& debugRead(RegisterIndex fifo);
@@ -86,8 +84,9 @@ private:
 
   // Bitmask representing channels available to selch. Bit 0 maps to fifos[0].
   uint              bitmask;
+  DecodedInstruction selchInst;
 
-  sc_event anyDataArrived, selectedDataArrived;
+  sc_event anyDataArrived;
 
   // For debug.
   int32_t local;
@@ -123,7 +122,7 @@ public:
 public:
 
   // No need to specify a FIFO - we will use the network address to choose.
-  void write(NetworkData value);
+  void write(DecodedInstruction inst, NetworkData value);
 
   // Event triggered when any data has been sent onto the network. For our
   // purposes, this means the data has entered the output FIFO, as this allows

@@ -38,7 +38,7 @@ bool InstructionBase::isEndOfPacket() const {
 }
 
 // Does this instruction read from the register file?
-bool InstructionBase::readsRegister(RegisterPort port) const {return false;}
+bool InstructionBase::readsRegister(PortIndex port) const {return false;}
 
 // Does this instruction write to the register file?
 bool InstructionBase::writesRegister() const {return false;}
@@ -75,7 +75,7 @@ bool InstructionBase::sendsOnNetwork() const {return false;}
 
 
 // Return the index of the register read from the given port.
-RegisterIndex InstructionBase::getSourceRegister(RegisterPort port) const {
+RegisterIndex InstructionBase::getSourceRegister(PortIndex port) const {
   assert(false);
   return 0;
 }
@@ -107,7 +107,7 @@ void InstructionBase::readRegisters() {
   startingPhase(InstructionInterface::INST_REG_READ);
   finishedPhase(InstructionInterface::INST_REG_READ);
 }
-void InstructionBase::readRegistersCallback(RegisterPort port, int32_t value) {
+void InstructionBase::readRegistersCallback(PortIndex port, int32_t value) {
   assert(false);
 }
 
@@ -115,7 +115,7 @@ void InstructionBase::writeRegisters() {
   startingPhase(InstructionInterface::INST_REG_WRITE);
   finishedPhase(InstructionInterface::INST_REG_WRITE);
 }
-void InstructionBase::writeRegistersCallback() {assert(false);}
+void InstructionBase::writeRegistersCallback(PortIndex port) {assert(false);}
 
 void InstructionBase::earlyCompute() {
   startingPhase(InstructionInterface::INST_COMPUTE);
@@ -133,37 +133,43 @@ void InstructionBase::readCMT() {
   startingPhase(InstructionInterface::INST_CMT_READ);
   finishedPhase(InstructionInterface::INST_CMT_READ);
 }
-void InstructionBase::readCMTCallback(EncodedCMTEntry value) {assert(false);}
+void InstructionBase::readCMTCallback(PortIndex port, EncodedCMTEntry value) {
+  assert(false);
+}
 
 void InstructionBase::writeCMT() {
   startingPhase(InstructionInterface::INST_CMT_WRITE);
   finishedPhase(InstructionInterface::INST_CMT_WRITE);
 }
-void InstructionBase::writeCMTCallback() {assert(false);}
+void InstructionBase::writeCMTCallback(PortIndex port) {assert(false);}
 
 void InstructionBase::readScratchpad() {
   startingPhase(InstructionInterface::INST_SPAD_READ);
   finishedPhase(InstructionInterface::INST_SPAD_READ);
 }
-void InstructionBase::readScratchpadCallback(int32_t value) {assert(false);}
+void InstructionBase::readScratchpadCallback(PortIndex port, int32_t value) {
+  assert(false);
+}
 
 void InstructionBase::writeScratchpad() {
   startingPhase(InstructionInterface::INST_SPAD_WRITE);
   finishedPhase(InstructionInterface::INST_SPAD_WRITE);
 }
-void InstructionBase::writeScratchpadCallback() {assert(false);}
+void InstructionBase::writeScratchpadCallback(PortIndex port) {assert(false);}
 
 void InstructionBase::readCregs() {
   startingPhase(InstructionInterface::INST_CREG_READ);
   finishedPhase(InstructionInterface::INST_CREG_READ);
 }
-void InstructionBase::readCregsCallback(int32_t value) {assert(false);}
+void InstructionBase::readCregsCallback(PortIndex port, int32_t value) {
+  assert(false);
+}
 
 void InstructionBase::writeCregs() {
   startingPhase(InstructionInterface::INST_CREG_WRITE);
   finishedPhase(InstructionInterface::INST_CREG_WRITE);
 }
-void InstructionBase::writeCregsCallback() {assert(false);}
+void InstructionBase::writeCregsCallback(PortIndex port) {assert(false);}
 
 void InstructionBase::readPredicate() {
   startingPhase(InstructionInterface::INST_PRED_READ);
@@ -176,7 +182,7 @@ void InstructionBase::readPredicate() {
   else
     finishedPhase(InstructionInterface::INST_PRED_READ);
 }
-void InstructionBase::readPredicateCallback(bool value) {
+void InstructionBase::readPredicateCallback(PortIndex port, bool value) {
   bool squashed = ((predicate == EXECUTE_IF_P)     && !value)
                || ((predicate == EXECUTE_IF_NOT_P) &&  value);
 
@@ -189,7 +195,7 @@ void InstructionBase::writePredicate() {
   startingPhase(InstructionInterface::INST_PRED_WRITE);
   finishedPhase(InstructionInterface::INST_PRED_WRITE);
 }
-void InstructionBase::writePredicateCallback() {assert(false);}
+void InstructionBase::writePredicateCallback(PortIndex port) {assert(false);}
 
 void InstructionBase::sendNetworkData() {
   startingPhase(InstructionInterface::INST_NETWORK_SEND);

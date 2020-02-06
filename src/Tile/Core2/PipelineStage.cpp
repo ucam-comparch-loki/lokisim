@@ -20,7 +20,7 @@ PipelineStage::PipelineStage(sc_module_name name) :
   // do initialise
 }
 
-void PipelineStage::readRegister(RegisterIndex index, RegisterPort port) {
+void PipelineStage::readRegister(RegisterIndex index, PortIndex port) {
   LOKI_ERROR << "Can't read registers from " << this->name() << endl;
   loki_assert(false);
 }

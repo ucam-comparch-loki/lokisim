@@ -11,9 +11,7 @@
 namespace Compute {
 
 WriteStage::WriteStage(sc_module_name name) :
-    LastPipelineStage(name),
-    writeHandler("write"),
-    networkHandler("network") {
+    LastPipelineStage(name) {
   // Nothing
 }
 
@@ -25,13 +23,11 @@ void WriteStage::execute() {
 }
 
 void WriteStage::writeRegister(RegisterIndex index, int32_t value) {
-  core().writeRegister(index, value);
-  writeHandler.begin(instruction);
+  core().writeRegister(instruction, index, value);
 }
 
 void WriteStage::sendOnNetwork(NetworkData flit) {
-  core().sendOnNetwork(flit);
-  networkHandler.begin(instruction);
+  core().sendOnNetwork(instruction, flit);
 }
 
 } // end namespace

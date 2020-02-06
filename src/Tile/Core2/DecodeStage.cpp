@@ -11,14 +11,7 @@
 namespace Compute {
 
 DecodeStage::DecodeStage(sc_module_name name) :
-    MiddlePipelineStage(name),
-    computeHandler("early_compute"),
-    readRegHandler1("reg1", REGISTER_PORT_1),
-    readRegHandler2("reg2", REGISTER_PORT_2),
-    readPredicateHandler("predicate"),
-    readCMTHandler("cmt", REGISTER_PORT_2), // Port 2: EXECUTE has read priority
-    wocheHandler("credits"),
-    selchHandler("buffers") {
+    MiddlePipelineStage(name) {
 
   remoteMode = false;
 
@@ -78,39 +71,29 @@ void DecodeStage::computeLatency(opcode_t opcode, function_t fn) {
       // TODO: 1 cycle wait
       break;
   }
-  computeHandler.begin(instruction);
 }
 
-void DecodeStage::readRegister(RegisterIndex index, RegisterPort port) {
-  // TODO: Create a separate ForwardingNetwork?
-  // All instructions need to be able to provide their source/destination registers.
-
-  core().readRegister(index, port);
-  switch (port) {
-    case REGISTER_PORT_1: readRegHandler1.begin(instruction); break;
-    case REGISTER_PORT_2: readRegHandler2.begin(instruction); break;
-  }
+void DecodeStage::readRegister(RegisterIndex index, PortIndex port) {
+  core().readRegister(instruction, index, port);
 }
 
 void DecodeStage::readPredicate() {
-  core().readPredicate();
-  readPredicateHandler.begin(instruction);
+  core().readPredicate(instruction);
 }
 
 void DecodeStage::readCMT(RegisterIndex index) {
-  // Structural hazard: use port 2 so we defer priority to execute stage.
-  core().readCMT(index, REGISTER_PORT_2);
-  readCMTHandler.begin(instruction);
+  // Structural hazard: use port 1 so we defer priority to execute stage.
+  core().readCMT(instruction, index, 1);
 }
 
 void DecodeStage::fetch(MemoryAddr address,
                         ChannelMapEntry::MemoryChannel channel,
                         bool execute, bool persistent) {
-  core().fetch(address, channel, execute, persistent);
+  core().fetch(instruction, address, channel, execute, persistent);
 }
 
 void DecodeStage::jump(JumpOffset offset) {
-  core().jump(offset);
+  core().jump(instruction, offset);
 }
 
 void DecodeStage::startRemoteExecution(ChannelID address) {
@@ -125,12 +108,11 @@ void DecodeStage::endRemoteExecution() {
 }
 
 void DecodeStage::waitForCredit(ChannelIndex channel) {
-  wocheHandler.begin(instruction);
+  core().waitForCredit(instruction, channel);
 }
 
 void DecodeStage::selectChannelWithData(uint bitmask) {
-  core().selectChannelWithData(bitmask);
-  selchHandler.begin(instruction);
+  core().selectChannelWithData(instruction, bitmask);
 }
 
 } // end namespace

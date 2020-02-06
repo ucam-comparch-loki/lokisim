@@ -31,16 +31,25 @@ RegisterFile::RegisterFile(sc_module_name name,
   // Nothing
 }
 
-void RegisterFile::read(RegisterIndex reg, RegisterPort port) {
-  RegisterFileBase<int32_t>::read(reg, port);
+void RegisterFile::read(DecodedInstruction inst, RegisterIndex reg,
+                        PortIndex port) {
+  RegisterFileBase<int32_t>::read(inst, reg, port);
 
   // Some of the registers are hard-wired, so access those immediately.
   switch (reg) {
     // Constant zero.
-    case 0: readPort[port].setResult(0); break;
+    case 0:
+      read_t result = 0;
+      notifyReadFinished(inst, port, result);
+      this->readPort[port].clear();
+      break;
 
     // Current instruction packet address.
-    case 1: readPort[port].setResult(data[1]); break;
+    case 1:
+      read_t result = data[1];
+      notifyReadFinished(inst, port, result);
+      this->readPort[port].clear();
+      break;
 
     // Network FIFOs.
     // TODO: use numFIFOs parameter.
@@ -69,11 +78,29 @@ bool RegisterFile::isStandard(RegisterIndex reg) const {
   return reg >= (2 + numFIFOs);
 }
 
+void RegisterFile::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
+  inst->writeRegistersCallback(port);
+}
+
+void RegisterFile::notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                      read_t result) {
+  inst->readRegistersCallback(port, result);
+}
+
 
 Scratchpad::Scratchpad(sc_module_name name,
                        const scratchpad_parameters_t& params) :
     RegisterFileBase<int32_t>(name, 1, 1, params.size) {
   // Nothing
+}
+
+void Scratchpad::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
+  inst->writeScratchpadCallback(port);
+}
+
+void Scratchpad::notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                    read_t result) {
+  inst->readScratchpadCallback(port, result);
 }
 
 
@@ -93,6 +120,8 @@ ChannelMapTable::ChannelMapTable(sc_module_name name,
   for (uint i=0; i<params.size; i++)
     data.push_back(ChannelMapEntry(ChannelID(thisCore, i)));
 
+  blockingChannel = -1;
+
   iCredit(iCreditFIFO);
 
   SC_METHOD(consumeCredit);
@@ -105,20 +134,36 @@ uint ChannelMapTable::creditsAvailable(ChannelIndex channel) const {
   return data[channel].numCredits();
 }
 
-const sc_core::sc_event& ChannelMapTable::creditArrivedEvent() const {
-  return iCreditFIFO.dataConsumedEvent();
+void ChannelMapTable::waitForCredit(DecodedInstruction inst, ChannelIndex channel) {
+  loki_assert(!instruction);
+
+  instruction = inst;
+  blockingChannel = channel;
 }
 
 void ChannelMapTable::doRead(uint port) {
   // Convert from ChannelMapEntry to EncodedCMTEntry.
-  EncodedCMTEntry result = data[this->readPort[port].reg()].read();
-  this->readPort[port].setResult(result);
+  RegisterIndex reg = this->readPort[port].reg();
+  read_t result = data[reg].read();
+  notifyReadFinished(this->readPort[port].instruction(), port, result);
+  this->readPort[port].clear();
 }
 
 void ChannelMapTable::doWrite(uint port) {
   // Convert from EncodedCMTEntry to ChannelMapEntry.
-  EncodedCMTEntry encoded = this->writePort[port].result();
+  write_t encoded = this->writePort[port].result();
   data[this->writePort[port].reg()].write(encoded);
+  notifyWriteFinished(this->writePort[port].instruction(), port);
+  this->writePort[port].clear();
+}
+
+void ChannelMapTable::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
+  inst->writeCMTCallback(port);
+}
+
+void ChannelMapTable::notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                         read_t result) {
+  inst->readCMTCallback(port, result);
 }
 
 void ChannelMapTable::consumeCredit() {
@@ -131,6 +176,17 @@ void ChannelMapTable::consumeCredit() {
       << ChannelID(id(), channel) << " " << credit.messageID() << endl;
 
   data[channel].addCredits(numCredits);
+
+  if (channel == blockingChannel)
+    notifyWaitingInstruction();
+}
+
+void ChannelMapTable::notifyWaitingInstruction() {
+  loki_assert(instruction);
+
+  instruction->creditArrivedCallback();
+  instruction.reset();
+  blockingChannel = -1;
 }
 
 
@@ -139,18 +195,36 @@ ControlRegisters::ControlRegisters(sc_module_name name) :
   // Nothing
 }
 
+void ControlRegisters::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
+  inst->writeCregsCallback(port);
+}
+
+void ControlRegisters::notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                          read_t result) {
+  inst->readCregsCallback(port, result);
+}
+
 
 PredicateRegister::PredicateRegister(sc_module_name name) :
     RegisterFileBase<bool>(name, 1, 1, 1) {
   // Nothing
 }
 
-void PredicateRegister::read() {
-  RegisterFileBase<bool>::read(0);
+void PredicateRegister::read(DecodedInstruction inst) {
+  RegisterFileBase<bool>::read(inst, 0);
 }
 
-void PredicateRegister::write(bool value) {
-  RegisterFileBase<bool>::write(0, value);
+void PredicateRegister::write(DecodedInstruction inst, bool value) {
+  RegisterFileBase<bool>::write(inst, 0, value);
+}
+
+void PredicateRegister::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
+  inst->writePredicateCallback(port);
+}
+
+void PredicateRegister::notifyReadFinished(DecodedInstruction inst, PortIndex port,
+                                           read_t result) {
+  inst->readPredicateCallback(port, result);
 }
 
 } // end namespace

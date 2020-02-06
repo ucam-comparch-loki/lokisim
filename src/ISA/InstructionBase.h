@@ -38,7 +38,7 @@ public:
   bool isEndOfPacket() const;
 
   // Does this instruction read from the register file?
-  bool readsRegister(RegisterPort port) const;
+  bool readsRegister(PortIndex port) const;
 
   // Does this instruction write to the register file?
   bool writesRegister() const;
@@ -75,7 +75,7 @@ public:
 
 
   // Return the index of the register read from the given port.
-  RegisterIndex getSourceRegister(RegisterPort port) const;
+  RegisterIndex getSourceRegister(PortIndex port) const;
 
   // Return the index of the register written.
   RegisterIndex getDestinationRegister() const;
@@ -97,11 +97,11 @@ public:
 
   // Read registers, including register-mapped input FIFOs.
   void readRegisters();
-  void readRegistersCallback(RegisterPort port, int32_t value);
+  void readRegistersCallback(PortIndex port, int32_t value);
 
   // Write to the register file.
   void writeRegisters();
-  void writeRegistersCallback();
+  void writeRegistersCallback(PortIndex port);
 
   // Computation which happens before the execute stage (e.g. fetch, selch).
   void earlyCompute();
@@ -113,35 +113,35 @@ public:
 
   // Read channel map table.
   void readCMT();
-  void readCMTCallback(EncodedCMTEntry value);
+  void readCMTCallback(PortIndex port, EncodedCMTEntry value);
 
   // Write to the channel map table.
   void writeCMT();
-  void writeCMTCallback();
+  void writeCMTCallback(PortIndex port);
 
   // Read the core-local scratchpad.
   void readScratchpad();
-  void readScratchpadCallback(int32_t value);
+  void readScratchpadCallback(PortIndex port, int32_t value);
 
   // Write to the core-local scratchpad.
   void writeScratchpad();
-  void writeScratchpadCallback();
+  void writeScratchpadCallback(PortIndex port);
 
   // Read the control registers.
   void readCregs();
-  void readCregsCallback(int32_t value);
+  void readCregsCallback(PortIndex port, int32_t value);
 
   // Write to the control registers.
   void writeCregs();
-  void writeCregsCallback();
+  void writeCregsCallback(PortIndex port);
 
   // Read the control registers.
   void readPredicate();
-  void readPredicateCallback(bool value);
+  void readPredicateCallback(PortIndex port, bool value);
 
   // Write to the predicate register.
   void writePredicate();
-  void writePredicateCallback();
+  void writePredicateCallback(PortIndex port);
 
   // Send data onto the network.
   void sendNetworkData();

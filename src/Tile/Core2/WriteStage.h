@@ -33,17 +33,6 @@ public:
   virtual void writeRegister(RegisterIndex index, int32_t value);
   virtual void sendOnNetwork(NetworkData flit);
 
-//============================================================================//
-// Local state
-//============================================================================//
-
-private:
-  friend class WriteRegisterHandler;
-  friend class NetworkSendHandler;
-
-  WriteRegisterHandler writeHandler;
-  NetworkSendHandler networkHandler;
-
 };
 
 } // end namespace

@@ -39,7 +39,7 @@ void ForwardingNetwork::addProducer(DecodedInstruction producer) {
 }
 
 bool ForwardingNetwork::requiresForwarding(DecodedInstruction consumer,
-                                           RegisterPort port) const {
+                                           PortIndex port) const {
   if (!consumer->readsRegister(port))
     return false;
 
@@ -48,7 +48,7 @@ bool ForwardingNetwork::requiresForwarding(DecodedInstruction consumer,
 }
 
 void ForwardingNetwork::addConsumer(DecodedInstruction consumer,
-                                    RegisterPort port) {
+                                    PortIndex port) {
   if (requiresForwarding(consumer, port)) {
     RegisterIndex source = consumer->getSourceRegister(port);
 

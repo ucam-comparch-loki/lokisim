@@ -41,11 +41,11 @@ public:
 
   // Return whether the given instruction needs to use the forwarding network
   // to get the specified operand.
-  bool requiresForwarding(DecodedInstruction consumer, RegisterPort port) const;
+  bool requiresForwarding(DecodedInstruction consumer, PortIndex port) const;
 
   // Add an instruction which receives an operand. The instruction will be
   // removed automatically when all operands have arrived.
-  void addConsumer(DecodedInstruction consumer, RegisterPort port);
+  void addConsumer(DecodedInstruction consumer, PortIndex port);
 
 private:
 
@@ -78,7 +78,7 @@ private:
 
   // A list of consumers waiting for each register.
   // Indexed using consumers[register].
-  typedef pair<DecodedInstruction, RegisterPort> consumer_t;
+  typedef pair<DecodedInstruction, PortIndex> consumer_t;
   vector<list<consumer_t>> consumers;
 
 };

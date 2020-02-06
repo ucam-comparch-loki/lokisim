@@ -31,7 +31,7 @@ public:
 
   // Part of the CoreInterface implemented here.
   virtual void computeLatency(opcode_t opcode, function_t fn=(function_t)0);
-  virtual void readRegister(RegisterIndex index, RegisterPort port);
+  virtual void readRegister(RegisterIndex index, PortIndex port);
   virtual void readPredicate();
   virtual void readCMT(RegisterIndex index);
   virtual void fetch(MemoryAddr address, ChannelMapEntry::MemoryChannel channel,
@@ -47,19 +47,6 @@ public:
 //============================================================================//
 
 private:
-  friend class ComputeHandler;
-  friend class ReadRegisterHandler;
-  friend class ReadPredicateHandler;
-  friend class ReadCMTHandler;
-  friend class WocheHandler;
-  friend class SelchHandler;
-
-  ComputeHandler computeHandler;
-  ReadRegisterHandler readRegHandler1, readRegHandler2;
-  ReadPredicateHandler readPredicateHandler;
-  ReadCMTHandler readCMTHandler;
-  WocheHandler wocheHandler;
-  SelchHandler selchHandler;
 
   // When in remote execution mode, all instructions are sent to the specified
   // network address without being executed locally. Remote execution ends when
