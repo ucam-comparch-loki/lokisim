@@ -31,6 +31,8 @@ template<typename stored_type,
          typename write_type=stored_type>
 class RegisterFileBase : public StorageBase<stored_type, read_type, write_type> {
 
+  typedef StorageBase<stored_type, read_type, write_type> parent_t;
+
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
@@ -39,7 +41,7 @@ protected:
   RegisterFileBase(sc_module_name name, uint readPorts, uint writePorts,
                    size_t size, bool prioritiseReads=false,
                    bool prioritiseWrites=false) :
-      StorageBase<stored_type, read_type, write_type>(name, readPorts, writePorts),
+      parent_t(name, readPorts, writePorts),
       data(size),
       prioritiseReads(prioritiseReads),
       prioritiseWrites(prioritiseWrites) {
@@ -53,71 +55,25 @@ protected:
 public:
 
   // Read which bypasses all normal processes and completes immediately.
-  const read_t& debugRead(RegisterIndex reg) {
-    return data[reg];
-  }
-  const read_t& debugRead(RegisterIndex reg) const {
-    return data[reg];
-  }
+  const read_type debugRead(RegisterIndex reg);
+  const read_type debugRead(RegisterIndex reg) const;
 
   // Write which bypasses all normal processes and completes immediately.
-  void debugWrite(RegisterIndex reg, write_t value) {
-    data[reg] = value;
-  }
+  void debugWrite(RegisterIndex reg, write_type value);
 
 protected:
 
-  void processRequests() {
-    if (!this->clock.posedge()) {
-      next_trigger(this->clock.posedge_event());
-      return;
-    }
-
-    // Process writes first so reads see the latest data.
-    for (uint port=0; port<this->writePort.size(); port++) {
-      if (this->writePort[port].inProgress()) {
-        doWrite(port);
-
-        if (prioritiseWrites) {
-          next_trigger(this->clock.posedge_event());
-          break;
-        }
-      }
-    }
-
-    for (uint port=0; port<this->readPort.size(); port++) {
-      if (this->readPort[port].inProgress()) {
-        doRead(port);
-
-        if (prioritiseReads) {
-          next_trigger(this->clock.posedge_event());
-          break;
-        }
-      }
-    }
-  }
+  void processRequests();
 
   // Let an instruction know that its requested write operation has completed.
   virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port) = 0;
 
   // Let an instruction know that its requested read operation has completed.
   virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
-                                  read_t result) = 0;
+                                  read_type result) = 0;
 
-  virtual void doWrite(PortIndex port) {
-    // Default: copy data from the port to the data store.
-    data[this->writePort[port].reg()] = this->writePort[port].result();
-    notifyWriteFinished(this->writePort[port].instruction(), port);
-    this->writePort[port].clear();
-  }
-
-  virtual void doRead(PortIndex port) {
-    // Default: copy data from the data store to the port.
-    RegisterIndex reg = this->readPort[port].reg();
-    read_t result = data[reg];
-    notifyReadFinished(this->readPort[port].instruction(), port, result);
-    this->readPort[port].clear();
-  }
+  virtual void doWrite(PortIndex port);
+  virtual void doRead(PortIndex port);
 
   const Core& core() const;
   const ComponentID& id() const;
@@ -181,8 +137,8 @@ public:
   uint creditsAvailable(ChannelIndex channel) const;
   void waitForCredit(DecodedInstruction inst, ChannelIndex channel);
 protected:
-  virtual void doRead(uint port);
-  virtual void doWrite(uint port);
+  virtual void doRead(PortIndex port);
+  virtual void doWrite(PortIndex port);
   virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
   virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
                                   read_t result);

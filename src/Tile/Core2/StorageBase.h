@@ -44,7 +44,7 @@ public:
   }
 
   RegisterIndex reg() const {return toRead;}
-  bool inProgress() const {return client;}
+  bool inProgress() const {return (bool)client;}
   T result() const {return data;}
   DecodedInstruction instruction() const {return client;}
   const sc_core::sc_event& finished() const {return finishedEvent;}
@@ -85,7 +85,7 @@ public:
   }
 
   RegisterIndex reg() const {return toWrite;}
-  bool inProgress() const {return client;}
+  bool inProgress() const {return (bool)client;}
   T result() const {return data;}
   DecodedInstruction instruction() const {return client;}
   const sc_core::sc_event& finished() const {return finishedEvent;}
@@ -136,6 +136,8 @@ protected:
       clock("clock"),
       readPort("read_port", readPorts),
       writePort("write_port", writePorts) {
+
+    // TODO make ports manually (they need an extra position argument).
 
     // Wake the method whenever a request arrives, but only process it on a
     // clock edge.

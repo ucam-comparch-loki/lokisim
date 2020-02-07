@@ -67,7 +67,7 @@ void ForwardingNetwork::resultProduced(RegisterIndex reg) {
 
   for (auto it=consumers[reg].begin(); it != consumers[reg].end(); it++) {
     DecodedInstruction consumer = it->first;
-    RegisterPort port = it->second;
+    PortIndex port = it->second;
     consumer->readRegistersCallback(port, result);
   }
 

@@ -12,6 +12,69 @@
 
 namespace Compute {
 
+template<typename stored_type, typename read_type, typename write_type>
+const read_type RegisterFileBase<stored_type, read_type, write_type>::debugRead(RegisterIndex reg) {
+  return data[reg];
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+const read_type RegisterFileBase<stored_type, read_type, write_type>::debugRead(RegisterIndex reg) const {
+  return data[reg];
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+void RegisterFileBase<stored_type, read_type, write_type>::debugWrite(RegisterIndex reg, write_type value) {
+  data[reg] = value;
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+void RegisterFileBase<stored_type, read_type, write_type>::processRequests() {
+  if (!this->clock.posedge()) {
+    next_trigger(this->clock.posedge_event());
+    return;
+  }
+
+  // Process writes first so reads see the latest data.
+  for (uint port=0; port<this->writePort.size(); port++) {
+    if (this->writePort[port].inProgress()) {
+      doWrite(port);
+
+      if (prioritiseWrites) {
+        next_trigger(this->clock.posedge_event());
+        break;
+      }
+    }
+  }
+
+  for (uint port=0; port<this->readPort.size(); port++) {
+    if (this->readPort[port].inProgress()) {
+      doRead(port);
+
+      if (prioritiseReads) {
+        next_trigger(this->clock.posedge_event());
+        break;
+      }
+    }
+  }
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+void RegisterFileBase<stored_type, read_type, write_type>::doWrite(PortIndex port) {
+  // Default: copy data from the port to the data store.
+  data[this->writePort[port].reg()] = this->writePort[port].result();
+  notifyWriteFinished(this->writePort[port].instruction(), port);
+  this->writePort[port].clear();
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+void RegisterFileBase<stored_type, read_type, write_type>::doRead(PortIndex port) {
+  // Default: copy data from the data store to the port.
+  RegisterIndex reg = this->readPort[port].reg();
+  read_type result = data[reg];
+  notifyReadFinished(this->readPort[port].instruction(), port, result);
+  this->readPort[port].clear();
+}
+
 // Assuming all instances are direct submodules of Core.
 template<typename stored_type, typename read_type, typename write_type>
 const Core& RegisterFileBase<stored_type, read_type, write_type>::core() const {
@@ -38,18 +101,20 @@ void RegisterFile::read(DecodedInstruction inst, RegisterIndex reg,
   // Some of the registers are hard-wired, so access those immediately.
   switch (reg) {
     // Constant zero.
-    case 0:
+    case 0: {
       read_t result = 0;
       notifyReadFinished(inst, port, result);
       this->readPort[port].clear();
       break;
+    }
 
     // Current instruction packet address.
-    case 1:
+    case 1: {
       read_t result = data[1];
       notifyReadFinished(inst, port, result);
       this->readPort[port].clear();
       break;
+    }
 
     // Network FIFOs.
     // TODO: use numFIFOs parameter.
@@ -61,7 +126,8 @@ void RegisterFile::read(DecodedInstruction inst, RegisterIndex reg,
     case 7:
       loki_assert(false); break;
 
-    // All other registers: wait for processRequests to kick in.
+    // All other registers: everything is handled by the base class; wait for
+    // processRequests to kick in.
     default: break;
   }
 }
@@ -141,7 +207,7 @@ void ChannelMapTable::waitForCredit(DecodedInstruction inst, ChannelIndex channe
   blockingChannel = channel;
 }
 
-void ChannelMapTable::doRead(uint port) {
+void ChannelMapTable::doRead(PortIndex port) {
   // Convert from ChannelMapEntry to EncodedCMTEntry.
   RegisterIndex reg = this->readPort[port].reg();
   read_t result = data[reg].read();
@@ -149,7 +215,7 @@ void ChannelMapTable::doRead(uint port) {
   this->readPort[port].clear();
 }
 
-void ChannelMapTable::doWrite(uint port) {
+void ChannelMapTable::doWrite(PortIndex port) {
   // Convert from EncodedCMTEntry to ChannelMapEntry.
   write_t encoded = this->writePort[port].result();
   data[this->writePort[port].reg()].write(encoded);

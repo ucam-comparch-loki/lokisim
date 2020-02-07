@@ -8,7 +8,6 @@
 #ifndef SRC_TILE_CORE_EXECUTESTAGE_H_
 #define SRC_TILE_CORE_EXECUTESTAGE_H_
 
-#include "InstructionHandler.h"
 #include "PipelineStage.h"
 
 namespace Compute {
@@ -18,7 +17,10 @@ class ExecuteStage: public MiddlePipelineStage {
 //============================================================================//
 // Constructors and destructors
 //============================================================================//
+
 public:
+
+  SC_HAS_PROCESS(ExecuteStage);
   ExecuteStage(sc_module_name name);
 
 //============================================================================//
@@ -39,6 +41,21 @@ public:
   virtual void writeScratchpad(RegisterIndex index, int32_t value);
   virtual void writePredicate(bool value);
   virtual void syscall(int code);
+
+private:
+
+  // Notify an instruction that its computation has finished.
+  void computeCallback();
+
+//============================================================================//
+// Local state
+//============================================================================//
+
+private:
+
+  // Event used to stall an instruction while it performs computation. The event
+  // triggers when computation is complete.
+  sc_event computeLatencyEvent;
 
 };
 

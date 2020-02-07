@@ -8,7 +8,6 @@
 #ifndef SRC_TILE_CORE_WRITESTAGE_H_
 #define SRC_TILE_CORE_WRITESTAGE_H_
 
-#include "InstructionHandler.h"
 #include "PipelineStage.h"
 
 namespace Compute {

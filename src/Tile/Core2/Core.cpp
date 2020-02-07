@@ -187,11 +187,9 @@ ComputeTile& Core::tile() const {
 ComponentID Core::getSystemCallMemory(MemoryAddr address) const {
   // If accessing a group of memories, determine which bank to access.
   // Default data memory channel is 1.
-  const ChannelMapEntry& channelMap = channelMapTable.debugRead(1);
-
-  uint increment = channelMap.computeAddressIncrement(address);
-  return ComponentID(id.tile,
-      channelMap.memoryView().bank + increment + coresThisTile());
+  EncodedCMTEntry channelMap = channelMapTable.debugRead(1);
+  ChannelID networkAddr = getNetworkDestination(channelMap, address);
+  return networkAddr.component;
 }
 
 } // end namespace

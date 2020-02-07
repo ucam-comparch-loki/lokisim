@@ -55,10 +55,6 @@ RegisterIndex InputFIFOs::getSelectedChannel() const {
   return buffer;
 }
 
-const sc_event& InputFIFOs::anyDataArrivedEvent() const {
-  return anyDataArrived;
-}
-
 const int32_t& InputFIFOs::debugRead(RegisterIndex fifo) {
   // Need to return a reference to match existing interfaces, so copy to a local
   // variable first.
@@ -90,10 +86,8 @@ void InputFIFOs::processRequests() {
     }
   }
 
-  if (newData) {
-    anyDataArrived.notify(sc_core::SC_ZERO_TIME);
+  if (newData)
     checkBitmask();  // For selch instruction.
-  }
 
   std::set<ChannelIndex> portsRead;
   for (uint port=0; port<this->readPort.size(); port++) {
@@ -150,10 +144,6 @@ void OutputFIFOs::write(DecodedInstruction inst, NetworkData value) {
     StorageBase<NetworkData>::write(inst, 0, value);
 }
 
-const sc_event& OutputFIFOs::anyDataSentEvent() const {
-  return anyDataSent;
-}
-
 const NetworkData& OutputFIFOs::debugRead(RegisterIndex fifo) {
   local = fifos[fifo].peek();
   return local;
@@ -175,7 +165,6 @@ void OutputFIFOs::processRequests() {
       fifos[this->writePort[port].reg()].write(this->writePort[port].result());
       this->writePort[port].instruction()->sendNetworkDataCallback();
       this->writePort[port].clear();
-      anyDataSent.notify(sc_core::SC_ZERO_TIME);
     }
   }
 

@@ -86,8 +86,6 @@ private:
   uint              bitmask;
   DecodedInstruction selchInst;
 
-  sc_event anyDataArrived;
-
   // For debug.
   int32_t local;
 };
@@ -124,13 +122,6 @@ public:
   // No need to specify a FIFO - we will use the network address to choose.
   void write(DecodedInstruction inst, NetworkData value);
 
-  // Event triggered when any data has been sent onto the network. For our
-  // purposes, this means the data has entered the output FIFO, as this allows
-  // the instruction which generated the data to continue.
-  // TODO: need to ignore fetch requests? Have two ports, with priority/
-  // arbitration, and only return event for one of the ports?
-  const sc_event& anyDataSentEvent() const;
-
   // Read which bypasses all normal processes and completes immediately.
   const NetworkData& debugRead(RegisterIndex fifo);
 
@@ -152,8 +143,6 @@ private:
 
   // For debug.
   NetworkData local;
-
-  sc_event anyDataSent;
 
 };
 

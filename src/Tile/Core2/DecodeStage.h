@@ -8,7 +8,6 @@
 #ifndef SRC_TILE_CORE_DECODESTAGE_H_
 #define SRC_TILE_CORE_DECODESTAGE_H_
 
-#include "InstructionHandler.h"
 #include "PipelineStage.h"
 
 namespace Compute {
@@ -19,6 +18,7 @@ class DecodeStage: public MiddlePipelineStage {
 // Constructors and destructors
 //============================================================================//
 public:
+
   DecodeStage(sc_module_name name);
 
 //============================================================================//

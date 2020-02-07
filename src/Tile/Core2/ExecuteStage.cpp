@@ -12,7 +12,11 @@ namespace Compute {
 
 ExecuteStage::ExecuteStage(sc_module_name name) :
     MiddlePipelineStage(name) {
-  // Nothing
+
+  SC_METHOD(computeCallback);
+  sensitive << computeLatencyEvent;
+  dont_initialize();
+
 }
 
 void ExecuteStage::execute() {
@@ -26,16 +30,24 @@ void ExecuteStage::execute() {
 }
 
 void ExecuteStage::computeLatency(opcode_t opcode, function_t fn) {
+
+  double latency;
+
   switch (opcode) {
     case ISA::OP_MULLW:
     case ISA::OP_MULHW:
     case ISA::OP_MULHWU:
-      // TODO: 2 cycle wait
+      latency = 2;
       break;
     default:
-      // TODO: 1 cycle wait
+      latency = 1;
       break;
   }
+
+  // Wait for slightly less than the advertised times to ensure execution
+  // finishes in the expected clock cycle.
+  computeLatencyEvent.notify(latency - 0.1, SC_NS);
+
 }
 
 void ExecuteStage::readCMT(RegisterIndex index) {
@@ -69,6 +81,13 @@ void ExecuteStage::writePredicate(bool value) {
 
 void ExecuteStage::syscall(int code) {
   core().syscall(instruction, code);
+}
+
+
+void ExecuteStage::computeCallback() {
+  // Dummy argument - just letting the instruction know that enough time has
+  // passed for its result to be computed.
+  instruction->computeCallback(0);
 }
 
 } // end namespace

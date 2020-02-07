@@ -65,14 +65,6 @@ void DecodeStage::execute() {
   }
 }
 
-void DecodeStage::computeLatency(opcode_t opcode, function_t fn) {
-  switch (opcode) {
-    default:
-      // TODO: 1 cycle wait
-      break;
-  }
-}
-
 void DecodeStage::readRegister(RegisterIndex index, PortIndex port) {
   core().readRegister(instruction, index, port);
 }
