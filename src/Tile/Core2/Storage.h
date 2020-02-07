@@ -72,8 +72,9 @@ protected:
   virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
                                   read_type result) = 0;
 
-  virtual void doWrite(PortIndex port);
-  virtual void doRead(PortIndex port);
+  virtual void doWrite(RegisterIndex reg, write_type value);
+  virtual read_type doRead(RegisterIndex reg);
+  virtual read_type doRead(RegisterIndex reg) const;
 
   const Core& core() const;
   const ComponentID& id() const;
@@ -137,8 +138,8 @@ public:
   uint creditsAvailable(ChannelIndex channel) const;
   void waitForCredit(DecodedInstruction inst, ChannelIndex channel);
 protected:
-  virtual void doRead(PortIndex port);
-  virtual void doWrite(PortIndex port);
+  virtual read_t doRead(RegisterIndex reg);
+  virtual void doWrite(RegisterIndex reg, write_t value);
   virtual void notifyWriteFinished(DecodedInstruction inst, PortIndex port);
   virtual void notifyReadFinished(DecodedInstruction inst, PortIndex port,
                                   read_t result);

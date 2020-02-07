@@ -133,11 +133,19 @@ protected:
   SC_HAS_PROCESS(StorageBase);
   StorageBase(sc_module_name name, uint readPorts, uint writePorts) :
       LokiComponent(name),
-      clock("clock"),
-      readPort("read_port", readPorts),
-      writePort("write_port", writePorts) {
+      clock("clock") {
 
-    // TODO make ports manually (they need an extra position argument).
+    // Need to make ports manually (they need an extra position argument).
+    for (uint i=0; i<readPorts; i++) {
+      StorageReadPort<read_t>* port =
+          new StorageReadPort<read_t>(sc_gen_unique_name("read_port"), i);
+      readPort.push_back(port);
+    }
+    for (uint i=0; i<writePorts; i++) {
+      StorageWritePort<write_t>* port =
+          new StorageWritePort<write_t>(sc_gen_unique_name("write_port"), i);
+      writePort.push_back(port);
+    }
 
     // Wake the method whenever a request arrives, but only process it on a
     // clock edge.

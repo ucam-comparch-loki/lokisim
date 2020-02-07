@@ -14,17 +14,17 @@ namespace Compute {
 
 template<typename stored_type, typename read_type, typename write_type>
 const read_type RegisterFileBase<stored_type, read_type, write_type>::debugRead(RegisterIndex reg) {
-  return data[reg];
+  return doRead(reg);
 }
 
 template<typename stored_type, typename read_type, typename write_type>
 const read_type RegisterFileBase<stored_type, read_type, write_type>::debugRead(RegisterIndex reg) const {
-  return data[reg];
+  return doRead(reg);
 }
 
 template<typename stored_type, typename read_type, typename write_type>
 void RegisterFileBase<stored_type, read_type, write_type>::debugWrite(RegisterIndex reg, write_type value) {
-  data[reg] = value;
+  doWrite(reg, value);
 }
 
 template<typename stored_type, typename read_type, typename write_type>
@@ -37,7 +37,11 @@ void RegisterFileBase<stored_type, read_type, write_type>::processRequests() {
   // Process writes first so reads see the latest data.
   for (uint port=0; port<this->writePort.size(); port++) {
     if (this->writePort[port].inProgress()) {
-      doWrite(port);
+      RegisterIndex reg = this->writePort[port].reg();
+      write_type value = this->writePort[port].result();
+      doWrite(reg, value);
+      notifyWriteFinished(this->writePort[port].instruction(), port);
+      this->writePort[port].clear();
 
       if (prioritiseWrites) {
         next_trigger(this->clock.posedge_event());
@@ -48,7 +52,10 @@ void RegisterFileBase<stored_type, read_type, write_type>::processRequests() {
 
   for (uint port=0; port<this->readPort.size(); port++) {
     if (this->readPort[port].inProgress()) {
-      doRead(port);
+      RegisterIndex reg = this->readPort[port].reg();
+      read_type result = doRead(reg);
+      notifyReadFinished(this->readPort[port].instruction(), port, result);
+      this->readPort[port].clear();
 
       if (prioritiseReads) {
         next_trigger(this->clock.posedge_event());
@@ -59,20 +66,21 @@ void RegisterFileBase<stored_type, read_type, write_type>::processRequests() {
 }
 
 template<typename stored_type, typename read_type, typename write_type>
-void RegisterFileBase<stored_type, read_type, write_type>::doWrite(PortIndex port) {
-  // Default: copy data from the port to the data store.
-  data[this->writePort[port].reg()] = this->writePort[port].result();
-  notifyWriteFinished(this->writePort[port].instruction(), port);
-  this->writePort[port].clear();
+void RegisterFileBase<stored_type, read_type, write_type>::doWrite(RegisterIndex reg, write_type value) {
+  // Default: copy data directly to storage.
+  data[reg] = value;
 }
 
 template<typename stored_type, typename read_type, typename write_type>
-void RegisterFileBase<stored_type, read_type, write_type>::doRead(PortIndex port) {
-  // Default: copy data from the data store to the port.
-  RegisterIndex reg = this->readPort[port].reg();
-  read_type result = data[reg];
-  notifyReadFinished(this->readPort[port].instruction(), port, result);
-  this->readPort[port].clear();
+read_type RegisterFileBase<stored_type, read_type, write_type>::doRead(RegisterIndex reg) {
+  // Default: copy data directly from storage.
+  return data[reg];
+}
+
+template<typename stored_type, typename read_type, typename write_type>
+read_type RegisterFileBase<stored_type, read_type, write_type>::doRead(RegisterIndex reg) const {
+  // Default: copy data directly from storage.
+  return data[reg];
 }
 
 // Assuming all instances are direct submodules of Core.
@@ -207,20 +215,14 @@ void ChannelMapTable::waitForCredit(DecodedInstruction inst, ChannelIndex channe
   blockingChannel = channel;
 }
 
-void ChannelMapTable::doRead(PortIndex port) {
-  // Convert from ChannelMapEntry to EncodedCMTEntry.
-  RegisterIndex reg = this->readPort[port].reg();
-  read_t result = data[reg].read();
-  notifyReadFinished(this->readPort[port].instruction(), port, result);
-  this->readPort[port].clear();
+ChannelMapTable::read_t ChannelMapTable::doRead(RegisterIndex reg) {
+  // Convert from ChannelMapEntry to EncodedCMTEntry using read().
+  return data[reg].read();
 }
 
-void ChannelMapTable::doWrite(PortIndex port) {
-  // Convert from EncodedCMTEntry to ChannelMapEntry.
-  write_t encoded = this->writePort[port].result();
-  data[this->writePort[port].reg()].write(encoded);
-  notifyWriteFinished(this->writePort[port].instruction(), port);
-  this->writePort[port].clear();
+void ChannelMapTable::doWrite(RegisterIndex reg, write_t value) {
+  // Convert from EncodedCMTEntry to ChannelMapEntry using write().
+  data[reg].write(value);
 }
 
 void ChannelMapTable::notifyWriteFinished(DecodedInstruction inst, PortIndex port) {
