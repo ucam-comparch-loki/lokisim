@@ -1,5 +1,5 @@
 # lokisim
-Simulator for the Loki many-core architecture.
+Simulator for the [Loki many-core architecture](https://link.springer.com/article/10.1007/s11265-014-0944-6).
 
 ## Prerequisites
 ```
