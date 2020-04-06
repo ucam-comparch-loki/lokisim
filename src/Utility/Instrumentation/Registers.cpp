@@ -8,6 +8,7 @@
 // Pull in macros for min/max of various datatypes from stdint.h.
 #define __STDC_LIMIT_MACROS
 
+#include <cstring>
 #include "Registers.h"
 
 using namespace Instrumentation;

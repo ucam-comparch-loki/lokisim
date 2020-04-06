@@ -5,6 +5,8 @@
  *      Author: db434
  */
 
+#include <unistd.h>
+
 #include "Arguments.h"
 #include "Debugger.h"
 #include "Instrumentation/Stalls.h"

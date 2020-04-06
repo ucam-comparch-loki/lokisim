@@ -58,7 +58,7 @@ void Network::crossbarInput(const NetworkData& oldData, const NetworkData& newDa
   if (destinationPort >= CORES_PER_TILE)
     destinationPort -= CORES_PER_TILE;
 
-  int distance = abs(input - destinationPort);
+  int distance = abs(int(input) - int(destinationPort));
 
   xbarInHD += hamming;
   xbarDistHD += hamming*distance;

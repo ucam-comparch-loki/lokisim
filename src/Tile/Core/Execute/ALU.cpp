@@ -5,8 +5,9 @@
  *      Author: db434
  */
 
-#include "ALU.h"
+#include <unistd.h>
 
+#include "ALU.h"
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"
 #include "../../../Utility/Arguments.h"
