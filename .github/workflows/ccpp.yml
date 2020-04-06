@@ -13,5 +13,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install SystemC
+      run: sudo apt install libsystemc-dev
     - name: make
       run: cd build && make -j8
+    - name: Prepare artifact
+      run: cd .. && mkdir -p artifact/bin && cp build/lokisim artifact/bin && cp -a config artifact
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: lokisim
+        # Directory containing files to upload
+        path: artifact
