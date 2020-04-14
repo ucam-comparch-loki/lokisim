@@ -6,6 +6,7 @@
  */
 
 #include "ALU.h"
+#include <unistd.h>
 
 #include "../../../Datatype/DecodedInst.h"
 #include "../../../Datatype/Instruction.h"

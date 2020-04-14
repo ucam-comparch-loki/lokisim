@@ -17,6 +17,7 @@
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
+#include <unistd.h>
 
 using std::cout;
 using std::cerr;
