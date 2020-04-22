@@ -127,7 +127,6 @@ private:
   uint numChannels;
   uint outputShift;
 
-  // TODO: one of these per operand type?
   vector<uint> rowIDs;
   vector<vector<uint>> columnIDs;
 
