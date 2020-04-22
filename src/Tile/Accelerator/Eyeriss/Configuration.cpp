@@ -17,11 +17,15 @@ uint computeLatency(uint rows, uint columns) {
   //     * Activations:  5 bits (12x14x5 = 840 bits total)
   //     * Weights:      4 bits (12x14x4 = 672 bits total)
   //     * Partial sums: 4 bits (12x14x4 = 672 bits total)
-  //   * Computation configuration: ???
+  //   * 1 bit per PE (row?) to say whether psums come from network or neighbour
+  //   * Computation configuration:
+	//     * 4 bits indicating which 16 bits to use from a 32 bit psum
+	//     * ???
   //   * Assignment of 25 memory banks to activations or partial sums
   // This goes way past the stated size - not sure if anything is compressed?
 
   // TODO: allow fields to expand if simulating a larger accelerator.
+  // TODO: subtract cost of sending a conv_parameters_t to the accelerator.
   return 1794;
 }
 

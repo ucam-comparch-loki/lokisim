@@ -62,7 +62,7 @@ MulticastControllerColumn<T>::MulticastControllerColumn(sc_module_name name, uin
 
 template<typename T>
 uint MulticastControllerColumn<T>::getTag() {
-  return control.getColumnID(row, column);
+  return control->getColumnID(row, column);
 }
 
 

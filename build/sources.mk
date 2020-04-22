@@ -32,6 +32,7 @@ src/Network \
 src/Network/Topologies \
 src/OffChip \
 src/Tile/Accelerator \
+src/Tile/Accelerator/Eyeriss \
 src/Tile \
 src/Tile/Core \
 src/Tile/Core/Decode \

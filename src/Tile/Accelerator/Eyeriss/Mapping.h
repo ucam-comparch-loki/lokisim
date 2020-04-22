@@ -47,7 +47,7 @@ class Mapping {
   // tile size, optimising for overall energy efficiency.
   static tile_t stripMine(const pe_set_t& peSet,
                           const conv_parameters_t& conv,
-                          const eyeriss_parameters_t& hw);
+                          const accelerator_parameters_t& hw);
 
   // Map a PE set to the available PEs.
   // A PE set may need to be broken down into smaller pieces to fit it on the
@@ -55,7 +55,7 @@ class Mapping {
   // computations may need to be split over multiple "iterations" in time.
   // The returned structure is indexed using mapping[iteration][PE set].
   static vector<vector<mapping_t>> mapPhysical(const pe_set_t& peSets,
-                                               const eyeriss_parameters_t& hw);
+                                               const accelerator_parameters_t& hw);
 
   // We have a few example mappings in the paper - check that these functions
   // give the expected result.

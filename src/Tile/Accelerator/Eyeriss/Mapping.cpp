@@ -60,7 +60,7 @@ struct energy_cost_t {
 
 // Compute the relative energy cost of common operations, given the hardware to
 // be used.
-energy_cost_t getEnergy(const eyeriss_parameters_t& hw) {
+energy_cost_t getEnergy(const accelerator_parameters_t& hw) {
   // Use the default values from the paper.
   // TODO: allow energy estimates to change based on the hardware parameters.
   energy_cost_t energy;
@@ -117,7 +117,7 @@ double outputEnergy(const energy_cost_t& energy, const reuse_t& r) {
 
 tile_t Mapping::stripMine(const pe_set_t& peSet,
                           const conv_parameters_t& conv,
-                          const eyeriss_parameters_t& hw) {
+                          const accelerator_parameters_t& hw) {
   // Aim is to find a reuse_t for inputs, weights and outputs.
   // Constraints:
   //  * hardware parameters (PE array size, number of registers, etc.)
@@ -141,7 +141,7 @@ tile_t Mapping::stripMine(const pe_set_t& peSet,
 }
 
 some_type Mapping::mapPhysical(const pe_set_t& peSets,
-                               const eyeriss_parameters_t& hw) {
+                               const accelerator_parameters_t& hw) {
   // If we can't fit a PE set on the hardware, strip mine.
 
   // If multiple PE sets fit on the PE array simultaneously,

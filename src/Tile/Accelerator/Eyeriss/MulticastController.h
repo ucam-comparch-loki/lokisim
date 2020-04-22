@@ -16,6 +16,7 @@
 #include <utility>
 #include "../../../LokiComponent.h"
 #include "../../../Network/NetworkTypes.h"
+#include "Configuration.h"
 #include "Interconnect.h"
 
 using std::pair;

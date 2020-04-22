@@ -7,6 +7,7 @@
 
 #include "Interconnect.h"
 
+#include "../../../Utility/Assert.h"
 namespace Eyeriss {
 
 template<typename T>
