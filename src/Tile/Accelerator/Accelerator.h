@@ -80,6 +80,10 @@ public:
 
 private:
 
+  // Check that the provided parameters are consistent. Display a warning for
+  // any problems found, but do not exit simulation.
+  void checkParameters(const accelerator_parameters_t& params);
+
   // Event which is triggered when computation has finished and all results
   // have reached memory.
   const sc_event& finishedComputationEvent() const;
