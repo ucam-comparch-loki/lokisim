@@ -17,7 +17,7 @@ make -j8
 
 ### Usage
 ```
-lokisim [simulator options] program [program arguments]
+lokisim [simulator options] <program> [program arguments]
 ```
 
 See `lokisim --help` and `lokisim --list-parameters` for available simulator options. Program binaries must be compiled for the Loki architecture.
@@ -30,5 +30,5 @@ docker build --network=host . -t lokisim
 
 ### Usage
 ```
-docker run -v /abs/path/to/program/dir:/app lokisim [simulator options] /app/program [program arguments]
+docker run -v </abs/path/to/program/dir>:/app lokisim [simulator options] /app/<program> [program arguments]
 ```
