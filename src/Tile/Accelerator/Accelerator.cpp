@@ -26,7 +26,7 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, uint numMemoryBank
     toPEs2(params.dma2Ports()),
     fromPEs(params.dma3Ports()) {
 
-	checkParameters(params);
+  checkParameters(params);
 
   control.clock(clock);
   iMulticast[0](control.iParameter);
