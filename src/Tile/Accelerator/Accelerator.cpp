@@ -75,6 +75,13 @@ void Accelerator::magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
   parent().magicMemoryAccess(opcode, address, returnChannel, data);
 }
 
+bool Accelerator::isIdle() const {
+  // Should also check whether any compute stage is active?
+  // I think this is okay because the output requests are queued up well in
+  // advance.
+  return in1.isIdle() && in2.isIdle() && out.isIdle();
+}
+
 void Accelerator::checkParameters(const accelerator_parameters_t& params) {
 	// Broadcasting along both rows and columns means we're just doing the same
 	// computation on every PE.

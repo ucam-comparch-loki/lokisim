@@ -44,6 +44,7 @@ ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& pa
   dont_initialize();
 
   SC_METHOD(notifyFinished);
+  sensitive << algorithm.finishedComputation();
   sensitive << parent().finishedComputationEvent();
   dont_initialize();
 
@@ -71,7 +72,10 @@ void ControlUnit::startExecution() {
 }
 
 void ControlUnit::executionStep() {
-  loki_assert(algorithm.executing());
+  // We can get to this point and not have an algorithm to execute if there was
+  // no computation to do, and so it completed immediately.
+  if (!algorithm.executing())
+    return;
 
   if (canStartNewStep())
     algorithm.step();
@@ -91,18 +95,22 @@ bool ControlUnit::canStartNewStep() const {
 
 void ControlUnit::notifyFinished() {
   // This may not be valid if multiple computations get queued up.
-  loki_assert(!algorithm.executing());
+  if (algorithm.executing())
+    next_trigger(algorithm.finishedComputation());
+  else if (!parent().isIdle())
+    next_trigger(parent().finishedComputationEvent());
+  else {
+    LOKI_LOG(1) << this->name() << " finished computation" << endl;
+  //  cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
 
-  LOKI_LOG(1) << this->name() << " finished computation" << endl;
-//  cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
+    loki_assert(coreNotification.canWrite());
 
-  loki_assert(coreNotification.canWrite());
+    // Message doesn't need to contain any useful information.
+    Flit<Word> flit(0, notificationAddress.getDestination());
+    coreNotification.write(flit);
 
-  // Message doesn't need to contain any useful information.
-  Flit<Word> flit(0, notificationAddress.getDestination());
-  coreNotification.write(flit);
-
-  Instrumentation::idle(parent().id, true);
+    Instrumentation::idle(parent().id, true);
+  }
 }
 
 void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {

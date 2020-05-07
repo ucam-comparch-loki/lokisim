@@ -37,6 +37,15 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
 
   inProgress = true;
   startedComputationEvent.notify(sc_core::SC_ZERO_TIME);
+
+  // Check for corner case where one of the loops has no iterations to do.
+  for (uint i=0; i<loopNest.size(); i++) {
+    if (loopNest[i].iterations == 0) {
+      LOKI_WARN << this->name() << " asked to perform computation with 0 iterations" << endl;
+      notifyExecutionFinished();
+      break;
+    }
+  }
 }
 
 void ConvolutionAlgorithm::step() {

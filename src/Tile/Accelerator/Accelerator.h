@@ -78,6 +78,10 @@ public:
   void magicMemoryAccess(MemoryOpcode opcode, MemoryAddr address,
                          ChannelID returnChannel, Word data = 0);
 
+  // Is this accelerator currently performing computation? The accelerator is
+  // considered busy until the final result is sent to memory.
+  bool isIdle() const;
+
 private:
 
   // Check that the provided parameters are consistent. Display a warning for
