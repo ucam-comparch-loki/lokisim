@@ -127,7 +127,7 @@ typedef struct {
 
   // Other details of how convolution is to be performed.
   uint32_t stride;    // Distance between filter windows: default 1.
-  uint32_t dilation;  // Distance between filter elements: default 0.
+  uint32_t dilation;  // Distance between filter elements: default 1.
 
   // Data position and layout in memory.
   activation_config_t input;

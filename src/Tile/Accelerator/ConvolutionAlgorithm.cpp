@@ -41,7 +41,7 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   // Check for corner case where one of the loops has no iterations to do.
   for (uint i=0; i<loopNest.size(); i++) {
     if (loopNest[i].iterations == 0) {
-      LOKI_WARN << this->name() << " asked to perform computation with 0 iterations" << endl;
+//      LOKI_WARN << this->name() << " asked to perform computation with 0 iterations" << endl;
       notifyExecutionFinished();
       break;
     }
@@ -163,6 +163,17 @@ void ConvolutionAlgorithm::prepareForNewInput() {
   stepCount = 0;
 }
 
+// Determine how large the output will be (in pixels), given the computation
+// parameters. This applies to any windowed computation, e.g. convolution,
+// pooling.
+// The equation is taken from PyTorch (minus the `padding` parameter):
+// https://pytorch.org/docs/stable/nn.html#conv2d
+uint outputSize(uint inputSize, uint windowSize, uint stride, uint dilation) {
+  int size = ((inputSize - dilation * (windowSize - 1) - 1) / stride) + 1;
+
+  return (size < 0) ? 0 : size;
+}
+
 vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(const conv_parameters_t p) const {
   vector<loop_t> loops;
 
@@ -187,11 +198,13 @@ vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(const conv_parameters_t p
   loops.push_back(out_c);
 
   // Image X.
-  loop_t im_x = {p.shape.imageWidth, 0, p.input.columnSkip, 0, p.output.columnSkip};
+  uint out_x = outputSize(p.shape.imageWidth, p.shape.filterWidth, p.stride, p.dilation);
+  loop_t im_x = {out_x, 0, p.input.columnSkip, 0, p.output.columnSkip};
   loops.push_back(im_x);
 
   // Image Y.
-  loop_t im_y = {p.shape.imageHeight, 0, p.input.rowSkip, 0, p.output.rowSkip};
+  uint out_y = outputSize(p.shape.imageHeight, p.shape.filterHeight, p.stride, p.dilation);
+  loop_t im_y = {out_y, 0, p.input.rowSkip, 0, p.output.rowSkip};
   loops.push_back(im_y);
 
   // Filter X. Output stationary. (Could have input stationary instead.)
