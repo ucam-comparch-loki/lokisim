@@ -334,12 +334,6 @@ private:
         }
       }
 
-      // Fill in all remaining spaces with zero (for now).
-      for (uint col=0; col<oDataToPEs->size().width; col++)
-        for (uint row=0; row<oDataToPEs->size().height; row++)
-          if (col >= command.rowLength || row >= command.colLength)
-            oDataToPEs->write(row, col, 0);
-
       inFlight.push(command);
 
       // Default trigger: new command arrived
@@ -374,15 +368,29 @@ private:
     // Notify consumers when the last data has been received.
     loki_assert(outstandingResponses > 0);
     outstandingResponses--;
-    if (outstandingResponses == 0) {
-      oDataToPEs->finishedWriting(this->currentTick);
-      LOKI_LOG(2) << this->name() << " sending data for tick " << this->currentTick << endl;
-    }
+    if (outstandingResponses == 0)
+      finaliseOutput();
 
     // To emulate parallel operations, receive the next response immediately,
     // if there is one.
     if (ifc.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
+  }
+
+  void finaliseOutput() {
+    loki_assert(outstandingResponses == 0);
+
+    dma_command_t command = inFlight.front();
+    inFlight.pop();
+
+    // Clear old data from any spaces for which we didn't request new data.
+    for (uint col=0; col<oDataToPEs->size().width; col++)
+      for (uint row=0; row<oDataToPEs->size().height; row++)
+        if (col >= command.rowLength || row >= command.colLength)
+          oDataToPEs->write(row, col, 0);
+
+    oDataToPEs->finishedWriting(this->currentTick);
+    LOKI_LOG(2) << this->name() << " sending data for tick " << this->currentTick << endl;
   }
 
   // There may be multiple commands in flight, so manage which one is the
@@ -400,8 +408,6 @@ private:
     loki_assert(!inFlight.empty());
 
     dma_command_t command = inFlight.front();
-    inFlight.pop();
-
     this->currentTick = command.time;
     outstandingResponses = command.colLength * command.rowLength;
 
