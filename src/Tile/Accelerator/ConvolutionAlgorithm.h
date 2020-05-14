@@ -95,6 +95,10 @@ private:
   // Put the loop details into the order required.
   vector<loop_t> reorderLoops(const vector<loop_t>& unordered, const LoopOrder& order) const;
 
+  // Check whether the given loops are compatible with the current hardware
+  // configuration. Modify the computation plan if necessary.
+  void checkLoops(const vector<loop_t>& loops);
+
 //============================================================================//
 // Local state
 //============================================================================//
@@ -110,6 +114,10 @@ protected:
 
   // Step counter. One step = one computation by each PE.
   tick_t stepCount;
+
+  // Depending on the configuration chosen, we may not be able to use all of the
+  // PEs.
+  size2d_t activePEs;
 
 private:
 

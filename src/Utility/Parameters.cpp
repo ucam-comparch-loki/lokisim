@@ -291,12 +291,12 @@ void initialiseParameters() {
   abbreviations["acc-pe-cols"] = "accelerator-pe-columns";
   
   addParameter("accelerator-broadcast-rows", "Accelerator broadcast rows",
-               "Broadcast data along each row of PEs in each accelerator",
+               "Broadcast input 1's data along each row of PEs in each accelerator",
                getAcceleratorBroadcastRow, setAcceleratorBroadcastRow, 0);
   abbreviations["acc-broadcast-rows"] = "accelerator-broadcast-rows";
   
   addParameter("accelerator-broadcast-columns", "Accelerator broadcast columns",
-               "Broadcast data along each column of PEs in each accelerator",
+               "Broadcast input 2's data along each column of PEs in each accelerator",
                getAcceleratorBroadcastCol, setAcceleratorBroadcastCol, 0);
   abbreviations["acc-broadcast-cols"] = "accelerator-broadcast-cols";
 

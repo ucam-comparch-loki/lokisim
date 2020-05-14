@@ -29,11 +29,14 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   loki_assert(!executing());
 
   this->parameters = parameters;
+  activePEs = config.numPEs;
 
   vector<loop_t> unordered = getUnorderedLoops(parameters);
   vector<loop_t> ordered = reorderLoops(unordered, config.loops);
 
   loopNest = ordered;
+
+  checkLoops(loopNest);
 
   inProgress = true;
   startedComputationEvent.notify(sc_core::SC_ZERO_TIME);
@@ -73,33 +76,33 @@ void ConvolutionAlgorithm::step() {
   remaining.height = colLoop.iterations - colLoop.current;
 
   size2d_t computeRequired;
-  computeRequired.width = min(remaining.width, config.numPEs.width);
-  computeRequired.height = min(remaining.height, config.numPEs.height);
+  computeRequired.width = min(remaining.width, activePEs.width);
+  computeRequired.height = min(remaining.height, activePEs.height);
 
   // Send commands
   dma_command_t in1Command;
   in1Command.baseAddress = in1Addr;
-  in1Command.colLength = min(remaining.height, config.dma1Ports().height);
+  in1Command.colLength = min(computeRequired.height, config.dma1Ports().height);
   in1Command.colStride = colLoop.in1Skip;
-  in1Command.rowLength = min(remaining.width, config.dma1Ports().width);
+  in1Command.rowLength = min(computeRequired.width, config.dma1Ports().width);
   in1Command.rowStride = rowLoop.in1Skip;
   in1Command.time = stepCount;
   sendIn1Command(in1Command);
 
   dma_command_t in2Command;
   in2Command.baseAddress = in2Addr;
-  in2Command.colLength = min(remaining.height, config.dma2Ports().height);
+  in2Command.colLength = min(computeRequired.height, config.dma2Ports().height);
   in2Command.colStride = colLoop.in2Skip;
-  in2Command.rowLength = min(remaining.width, config.dma2Ports().width);
+  in2Command.rowLength = min(computeRequired.width, config.dma2Ports().width);
   in2Command.rowStride = rowLoop.in2Skip;
   in2Command.time = stepCount;
   sendIn2Command(in2Command);
 
   dma_command_t outCommand;
   outCommand.baseAddress = outAddr;
-  outCommand.colLength = min(remaining.height, config.dma3Ports().height);
+  outCommand.colLength = min(computeRequired.height, config.dma3Ports().height);
   outCommand.colStride = colLoop.outSkip;
-  outCommand.rowLength = min(remaining.width, config.dma3Ports().width);
+  outCommand.rowLength = min(computeRequired.width, config.dma3Ports().width);
   outCommand.rowStride = rowLoop.outSkip;
   outCommand.time = stepCount;
   sendOutCommand(outCommand);
@@ -230,4 +233,53 @@ vector<loop_t> ConvolutionAlgorithm::reorderLoops(const vector<loop_t>& unordere
   }
 
   return ordered;
+}
+
+
+// Check to make sure the requested loop order is compatible with the
+// accelerator's broadcast/accumulate configuration.
+void ConvolutionAlgorithm::checkLoops(const vector<loop_t>& loops) {
+  // The final two loops are parallelised on the accelerator.
+  const loop_t& rowLoop = loops[loops.size()-2]; // Iterates along a row of PEs
+  const loop_t& colLoop = loops[loops.size()-1]; // Iterates along a column of PEs
+
+  // If an input is broadcast, the loop parallelised along that dimension should
+  // treat that input as constant (i.e. stride = 0).
+  if (config.broadcastRows && rowLoop.in1Skip != 0) {
+    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
+    LOKI_WARN << "  Unable to broadcast along rows of PEs: using first column only." << endl;
+    LOKI_WARN << "  --acc-broadcast-rows=1 but penultimate loop doesn't treat input 1 as constant." << endl;
+
+    // Set columns to 1.
+    activePEs.width = 1;
+  }
+
+  if (config.broadcastCols && colLoop.in2Skip != 0) {
+    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
+    LOKI_WARN << "  Unable to broadcast along columns of PEs: using first row only." << endl;
+    LOKI_WARN << "  --acc-broadcast-cols=1 but final loop doesn't treat input 2 as constant." << endl;
+
+    // Set rows to 1.
+    activePEs.height = 1;
+  }
+
+  // If the output is accumulated, the loop parallelised in that dimension
+  // should treat the output as constant (i.e. stride = 0).
+  if (config.accumulateRows && rowLoop.outSkip != 0) {
+    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
+    LOKI_WARN << "  Unable to accumulate along rows of PEs: using first column only." << endl;
+    LOKI_WARN << "  --acc-accumulate-rows=1 but penultimate loop doesn't treat output as constant." << endl;
+
+    // Set columns to 1.
+    activePEs.width = 1;
+  }
+
+  if (config.accumulateCols && colLoop.outSkip != 0) {
+    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
+    LOKI_WARN << "  Unable to accumulate along columns of PEs: using first row only." << endl;
+    LOKI_WARN << "  --acc-accumulate-cols=1 but final loop doesn't treat output as constant." << endl;
+
+    // Set rows to 1.
+    activePEs.height = 1;
+  }
 }

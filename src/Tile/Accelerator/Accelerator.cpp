@@ -83,12 +83,6 @@ bool Accelerator::isIdle() const {
 }
 
 void Accelerator::checkParameters(const accelerator_parameters_t& params) {
-	// Broadcasting along both rows and columns means we're just doing the same
-	// computation on every PE.
-	if (params.broadcastCols && params.broadcastRows)
-		LOKI_WARN << this->name() << " configured to broadcast on both rows and columns.\n"
-		    "This will result in every PE performing the same computation." << endl;
-
 	// It doesn't make sense to broadcast and accumulate along the same dimension.
 	// This is equivalent to multiplying the single result by whatever value was
 	// broadcast.
