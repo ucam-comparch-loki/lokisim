@@ -12,8 +12,6 @@
 #define PARAMETERS_H_
 
 #include <string>
-
-#include "../Tile/Accelerator/Loops.h"
 #include "../Types.h"
 
 using std::string;
@@ -108,12 +106,11 @@ typedef struct {
 typedef struct {
   size2d_t numPEs;
 
+  // TODO: infer these based on the given loop order?
   bool broadcastRows;
   bool broadcastCols;
   bool accumulateRows;
   bool accumulateCols;
-
-  LoopOrder loops;
 
   uint latency;
   uint initiationInterval;

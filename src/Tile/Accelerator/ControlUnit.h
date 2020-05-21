@@ -12,7 +12,7 @@
 #include "../../Network/FIFOs/NetworkFIFO.h"
 #include "../ChannelMapEntry.h"
 #include "AcceleratorTypes.h"
-#include "ConvolutionAlgorithm.h"
+#include "Algorithm.h"
 #include "ParameterReceiver.h"
 
 class Accelerator;
@@ -72,12 +72,8 @@ private:
   // given as a parameter.
   void notifyFinished();
 
-  // Check that the parameters are consistent. This is purely for debug -
-  // simulation will end with an assertion failure if anything is wrong.
-  void parameterSanityCheck(const conv_parameters_t parameters);
-
   // Use the received parameters to update the DMA units' memory configuration.
-  void updateMemoryMapping(const conv_parameters_t parameters);
+  void updateMemoryMapping(const lat_parameters_t parameters);
 
   Accelerator& parent() const;
 
@@ -92,7 +88,7 @@ private:
   // progress.
   ParameterReceiver    receiver;
 
-  ConvolutionAlgorithm algorithm;
+  Algorithm algorithm;
 
   // Messages to notify cores when computation has finished.
   NetworkFIFO<Word> coreNotification;

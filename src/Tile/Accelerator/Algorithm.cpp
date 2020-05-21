@@ -1,18 +1,19 @@
 /*
- * ConvolutionAlgorithm.cpp
+ * Algorithm.cpp
  *
  *  Created on: 23 Jul 2018
  *      Author: db434
  */
 
-#include "ConvolutionAlgorithm.h"
+#include "Algorithm.h"
+
 #include "../../Utility/Assert.h"
 
 int min(int a, int b) {
   return (a > b) ? b : a;
 }
 
-ConvolutionAlgorithm::ConvolutionAlgorithm(sc_module_name name,
+Algorithm::Algorithm(sc_module_name name,
                                            const accelerator_parameters_t& config) :
     LokiComponent(name),
     config(config) {
@@ -21,21 +22,17 @@ ConvolutionAlgorithm::ConvolutionAlgorithm(sc_module_name name,
 
 }
 
-bool ConvolutionAlgorithm::executing() const {
+bool Algorithm::executing() const {
   return inProgress;
 }
 
-void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
+void Algorithm::start(const lat_parameters_t parameters) {
   loki_assert(!executing());
 
   this->parameters = parameters;
   activePEs = config.numPEs;
 
-  vector<loop_t> unordered = getUnorderedLoops(parameters);
-  vector<loop_t> ordered = reorderLoops(unordered, config.loops);
-
-  loopNest = ordered;
-
+  loopNest = getLoops(parameters);
   checkLoops(loopNest);
 
   inProgress = true;
@@ -51,14 +48,13 @@ void ConvolutionAlgorithm::start(const conv_parameters_t parameters) {
   }
 }
 
-void ConvolutionAlgorithm::step() {
+void Algorithm::step() {
   loki_assert_with_message(loopNest.size() >= 2, "Size = %d", loopNest.size());
 
   // Determine the addresses of all data types in the current iteration.
-  // TODO This is only valid for inference.
-  MemoryAddr in1Addr = parameters.input.address;
-  MemoryAddr in2Addr = parameters.filters.address;
-  MemoryAddr outAddr = parameters.output.address;
+  MemoryAddr in1Addr = parameters.in1.address;
+  MemoryAddr in2Addr = parameters.in2.address;
+  MemoryAddr outAddr = parameters.out.address;
 
   for (uint i=0; i<loopNest.size(); i++) {
     in1Addr += loopNest[i].current * loopNest[i].in1Skip;
@@ -133,35 +129,35 @@ void ConvolutionAlgorithm::step() {
 
 }
 
-const sc_event& ConvolutionAlgorithm::startedComputation() const {
+const sc_event& Algorithm::startedComputation() const {
   return startedComputationEvent;
 }
 
-const sc_event& ConvolutionAlgorithm::finishedComputation() const {
+const sc_event& Algorithm::finishedComputation() const {
   return finishedComputationEvent;
 }
 
-void ConvolutionAlgorithm::sendIn1Command(const dma_command_t command) {
+void Algorithm::sendIn1Command(const dma_command_t command) {
 //  loki_assert(!oInputCommand.valid());
   oInputCommand.write(command);
 }
 
-void ConvolutionAlgorithm::sendIn2Command(const dma_command_t command) {
+void Algorithm::sendIn2Command(const dma_command_t command) {
 //  loki_assert(!oWeightsCommand.valid());
   oWeightsCommand.write(command);
 }
 
-void ConvolutionAlgorithm::sendOutCommand(const dma_command_t command) {
+void Algorithm::sendOutCommand(const dma_command_t command) {
 //  loki_assert(!oOutputCommand.valid());
   oOutputCommand.write(command);
 }
 
-void ConvolutionAlgorithm::notifyExecutionFinished() {
+void Algorithm::notifyExecutionFinished() {
   finishedComputationEvent.notify(sc_core::SC_ZERO_TIME);
   prepareForNewInput();
 }
 
-void ConvolutionAlgorithm::prepareForNewInput() {
+void Algorithm::prepareForNewInput() {
   inProgress = false;
   stepCount = 0;
 }
@@ -177,68 +173,30 @@ uint outputSize(uint inputSize, uint windowSize, uint stride, uint dilation) {
   return (size < 0) ? 0 : size;
 }
 
-vector<loop_t> ConvolutionAlgorithm::getUnorderedLoops(const conv_parameters_t p) const {
+vector<loop_t> Algorithm::getLoops(const lat_parameters_t& p) const {
+  loki_assert(p.loop_count == p.loops.size());
+  loki_assert(p.loop_count == p.iteration_counts.size());
+
   vector<loop_t> loops;
 
-  // Group size for input and output (short name because it's used often).
-  uint igs = p.shape.inChannels / p.shape.groups;
-  uint ogs = p.shape.outChannels / p.shape.groups;
+  for (uint i=0; i<p.loop_count; i++) {
+    loop_t loop;
+    loop.iterations = p.iteration_counts[i];
+    loop.current = 0;
+    loop.in1Skip = p.loops[i].in1_stride;
+    loop.in2Skip = p.loops[i].in2_stride;
+    loop.outSkip = p.loops[i].out_stride;
 
-  // Batch.
-  loop_t batch = {p.shape.batchSize, 0, p.input.batchSkip, 0, p.output.batchSkip};
-  loops.push_back(batch);
-
-  // Group.
-  loop_t group = {p.shape.groups, 0, (int)igs*p.input.channelSkip, p.filters.groupSkip, (int)ogs*p.output.channelSkip};
-  loops.push_back(group);
-
-  // Input channels.
-  loop_t in_c = {igs, 0, p.input.channelSkip, p.filters.inChannelSkip, 0};
-  loops.push_back(in_c);
-
-  // Output channels.
-  loop_t out_c = {ogs, 0, 0, p.filters.outChannelSkip, p.output.channelSkip};
-  loops.push_back(out_c);
-
-  // Image X.
-  uint out_x = outputSize(p.shape.imageWidth, p.shape.filterWidth, p.stride, p.dilation);
-  loop_t im_x = {out_x, 0, p.input.columnSkip, 0, p.output.columnSkip};
-  loops.push_back(im_x);
-
-  // Image Y.
-  uint out_y = outputSize(p.shape.imageHeight, p.shape.filterHeight, p.stride, p.dilation);
-  loop_t im_y = {out_y, 0, p.input.rowSkip, 0, p.output.rowSkip};
-  loops.push_back(im_y);
-
-  // Filter X. Output stationary. (Could have input stationary instead.)
-  loop_t f_x = {p.shape.filterWidth, 0, p.input.columnSkip, p.filters.columnSkip, 0};
-  loops.push_back(f_x);
-
-  // Filter Y. Output stationary. (Could have input stationary instead.)
-  loop_t f_y = {p.shape.filterHeight, 0, p.input.rowSkip, p.filters.rowSkip, 0};
-  loops.push_back(f_y);
-
-  return loops;
-}
-
-vector<loop_t> ConvolutionAlgorithm::reorderLoops(const vector<loop_t>& unordered,
-                                                  const LoopOrder& order) const {
-  // Currently LoopOrders are fixed to 8 elements.
-  loki_assert_with_message(unordered.size() == 8, "Size = %d", unordered.size());
-  loki_assert_with_message(order.size() == 8, "Size = %d", order.size());
-
-  vector<loop_t> ordered;
-  for (uint loop=0; loop<8; loop++) {
-    ordered.push_back(unordered[order[loop]]);
+    loops.push_back(loop);
   }
 
-  return ordered;
+  return loops;
 }
 
 
 // Check to make sure the requested loop order is compatible with the
 // accelerator's broadcast/accumulate configuration.
-void ConvolutionAlgorithm::checkLoops(const vector<loop_t>& loops) {
+void Algorithm::checkLoops(const vector<loop_t>& loops) {
   // The final two loops are parallelised on the accelerator.
   const loop_t& rowLoop = loops[loops.size()-2]; // Iterates along a row of PEs
   const loop_t& colLoop = loops[loops.size()-1]; // Iterates along a column of PEs

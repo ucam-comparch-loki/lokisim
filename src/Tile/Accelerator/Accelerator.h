@@ -14,9 +14,9 @@
 #include "../../LokiComponent.h"
 #include "../../Network/NetworkTypes.h"
 #include "AcceleratorChannel.h"
+#include "Algorithm.h"
 #include "ComputeUnit.h"
 #include "ControlUnit.h"
-#include "ConvolutionAlgorithm.h"
 #include "DMA.h"
 
 class AcceleratorTile;

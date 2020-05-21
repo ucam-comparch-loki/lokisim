@@ -16,8 +16,8 @@
 #include "../../Utility/LokiVector2D.h"
 #include "../MemoryBankSelector.h"
 #include "AcceleratorTypes.h"
+#include "Algorithm.h"
 #include "CommandQueue.h"
-#include "ConvolutionAlgorithm.h"
 #include "Interface.h"
 #include "MemoryInterface.h"
 

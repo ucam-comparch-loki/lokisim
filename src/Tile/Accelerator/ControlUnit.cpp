@@ -9,9 +9,9 @@
  */
 
 #include "ControlUnit.h"
-#include "ConvolutionAlgorithm.h"
 #include "../../Utility/Assert.h"
 #include "Accelerator.h"
+#include "Algorithm.h"
 
 ControlUnit::ControlUnit(sc_module_name name, const accelerator_parameters_t& params) :
     LokiComponent(name),
@@ -56,11 +56,10 @@ void ControlUnit::startExecution() {
   if (algorithm.executing())
     next_trigger(algorithm.finishedComputation());
   else {
-    const conv_parameters_t parameters = receiver.getParameters();
+    const lat_parameters_t parameters = receiver.getParameters();
 
-    parameterSanityCheck(parameters);
     updateMemoryMapping(parameters);
-    notificationAddress.write(parameters.notificationAddress);
+    notificationAddress.write(parameters.notification_address);
 
     LOKI_LOG(1) << this->name() << " starting computation" << endl;
     startTime = Instrumentation::currentCycle();
@@ -113,20 +112,10 @@ void ControlUnit::notifyFinished() {
   }
 }
 
-void ControlUnit::parameterSanityCheck(const conv_parameters_t params) {
-  loki_assert(params.shape.groups != 0);
-  loki_assert_with_message(params.shape.inChannels % params.shape.groups == 0,
-      "Channels: %d, groups: %d", params.shape.inChannels, params.shape.groups);
-  loki_assert_with_message(params.shape.outChannels % params.shape.groups == 0,
-      "Channels: %d, groups: %d", params.shape.outChannels, params.shape.groups);
-//  loki_assert(params.shape.imageHeight >= params.shape.filterHeight);
-//  loki_assert(params.shape.imageWidth >= params.shape.filterWidth);
-}
-
-void ControlUnit::updateMemoryMapping(const conv_parameters_t params) {
-  parent().in1.replaceMemoryMapping(params.input.memoryConfigEncoded);
-  parent().in2.replaceMemoryMapping(params.filters.memoryConfigEncoded);
-  parent().out.replaceMemoryMapping(params.output.memoryConfigEncoded);
+void ControlUnit::updateMemoryMapping(const lat_parameters_t params) {
+  parent().in1.replaceMemoryMapping(params.in1.memory_config);
+  parent().in2.replaceMemoryMapping(params.in2.memory_config);
+  parent().out.replaceMemoryMapping(params.out.memory_config);
 }
 
 Accelerator& ControlUnit::parent() const {

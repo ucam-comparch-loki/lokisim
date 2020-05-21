@@ -1,29 +1,34 @@
 /*
- * ConvolutionAlgorithm.h
+ * Algorithm.h
  *
- * Base class for all convolution algorithms. A ConvolutionAlgorithm is
- * responsible for stepping through the algorithm in PE-array-sized chunks,
- * issuing commands to the various DMA units.
- *
- * This class should be extended to implement any particular loop order.
+ * An Algorithm is responsible for stepping through the required computation in
+ * PE-array-sized chunks, issuing commands to the various DMA units.
  *
  *  Created on: 23 Jul 2018
  *      Author: db434
  */
 
-#ifndef SRC_TILE_ACCELERATOR_CONVOLUTIONALGORITHM_H_
-#define SRC_TILE_ACCELERATOR_CONVOLUTIONALGORITHM_H_
+#ifndef SRC_TILE_ACCELERATOR_ALGORITHM_H_
+#define SRC_TILE_ACCELERATOR_ALGORITHM_H_
 
 #include "../../LokiComponent.h"
 #include "../../Memory/MemoryTypes.h"
 #include "AcceleratorTypes.h"
-#include "Loops.h"
 
 typedef sc_in<dma_command_t>  CommandInput;
 typedef sc_out<dma_command_t> CommandOutput;
 typedef sc_signal<dma_command_t> CommandSignal;
 
-class ConvolutionAlgorithm: public LokiComponent {
+// Details required to execute a single loop.
+typedef struct {
+  uint iterations; // Total number of iterations
+  uint current;    // Current iteration
+  int  in1Skip;    // Distance between elements of first data type in bytes
+  int  in2Skip;    // Distance between elements of second data type in bytes
+  int  outSkip;    // Distance between elements of output in bytes
+} loop_t;
+
+class Algorithm: public LokiComponent {
 
 //============================================================================//
 // Ports
@@ -45,7 +50,7 @@ public:
   // Information we might need:
   //  * A way to access the DMA units
   //  * The size of the PE array
-  ConvolutionAlgorithm(sc_module_name name,
+  Algorithm(sc_module_name name,
                        const accelerator_parameters_t& params);
 
 
@@ -59,7 +64,7 @@ public:
   bool executing() const;
 
   // Prepare to execute a new convolution.
-  void start(const conv_parameters_t parameters);
+  void start(const lat_parameters_t parameters);
 
   // "Execute" one iteration of the algorithm and send relevant commands to the
   // DMA units.
@@ -90,10 +95,7 @@ private:
   // Get details for each of the loops in the computation, regardless of their
   // order. These loops are arranged in such a way that a Loop enum value can
   // be used to select a loop which iterates along a particular dimension.
-  vector<loop_t> getUnorderedLoops(const conv_parameters_t parameters) const;
-
-  // Put the loop details into the order required.
-  vector<loop_t> reorderLoops(const vector<loop_t>& unordered, const LoopOrder& order) const;
+  vector<loop_t> getLoops(const lat_parameters_t& parameters) const;
 
   // Check whether the given loops are compatible with the current hardware
   // configuration. Modify the computation plan if necessary.
@@ -107,7 +109,7 @@ protected:
 
   // The received computation parameters. Used as loop bounds. Remain constant
   // while execution is in progress.
-  conv_parameters_t parameters;
+  lat_parameters_t parameters;
 
   // Details for each of the loops in the loop nest.
   vector<loop_t> loopNest;
@@ -125,10 +127,10 @@ private:
   sc_event startedComputationEvent;
   sc_event finishedComputationEvent;
 
-  // Configuration of the accelerator. Contains information such as loop order
-  // and size of PE array.
+  // Configuration of the accelerator. Contains information such as size of PE
+  // array.
   const accelerator_parameters_t& config;
 
 };
 
-#endif /* SRC_TILE_ACCELERATOR_CONVOLUTIONALGORITHM_H_ */
+#endif /* SRC_TILE_ACCELERATOR_ALGORITHM_H_ */

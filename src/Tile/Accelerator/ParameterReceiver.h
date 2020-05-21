@@ -1,7 +1,7 @@
 /*
  * ParameterReceiver.h
  *
- * Component responsible for receiving a convolution configuration and notifying
+ * Component responsible for receiving a computation configuration and notifying
  * when all parameters have arrived.
  *
  *  Created on: 23 Jul 2018
@@ -53,7 +53,7 @@ public:
 
   // Get a copy of all parameters received. Doing this frees up the component
   // to receive the next batch of parameters.
-  conv_parameters_t getParameters();
+  lat_parameters_t getParameters();
 
   // Event which is triggered when the final parameter arrives.
   const sc_event& allParametersArrived() const;
@@ -70,8 +70,9 @@ private:
 
 private:
 
-  conv_parameters_t parameters;
+  lat_parameters_t parameters;
   int parametersReceived;
+  int totalParameters;
 
   NetworkFIFO<Word> paramBuffer;
 

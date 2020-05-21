@@ -516,7 +516,6 @@ chip_parameters_t* Parameters::defaultParameters() {
 
   // Some extra parameters not accessible through the command line yet.
   p->tile.memory.cacheLineSize = 8 * BYTES_PER_WORD;
-  p->tile.accelerator.loops = LoopOrders::naive;
   p->memory.cacheLineSize = p->tile.memory.cacheLineSize;
 
   return p;
