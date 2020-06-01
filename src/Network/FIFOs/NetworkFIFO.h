@@ -126,6 +126,8 @@ public:
   }
 
   // Event triggered whenever it becomes possible to read from the FIFO.
+  // This may be because new data has arrived, or because old data was removed,
+  // revealing something new.
   virtual const sc_event& canReadEvent() const {
     return newHeadFlit;
   }

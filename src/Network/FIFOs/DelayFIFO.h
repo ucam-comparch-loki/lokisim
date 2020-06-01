@@ -67,7 +67,7 @@ public:
 
   virtual const stored_data read() {
     // This is a comparison between floating point numbers - dangerous!
-    double epsilon = 1e-10;
+    double epsilon = 1e-8;
     loki_assert(currentTime() - writeTimes.front().time > -epsilon);
 
     const stored_data data = base_class::read();
@@ -105,7 +105,7 @@ protected:
   // not old enough to be read yet.
   virtual bool empty() const {
     // This is a comparison between floating point numbers - dangerous!
-    double epsilon = 1e-10;
+    double epsilon = 1e-8;
     return base_class::empty() ||
            writeTimes.front().time - currentTime() > epsilon;
   }
@@ -124,7 +124,7 @@ private:
     // necessary to avoid triggering multiple times simultaneously.
     for (auto it=writeTimes.begin(); it != writeTimes.end(); ++it) {
       if (!it->triggered) {
-        if (it->time == currentTime())
+        if (it->time <= currentTime())
           delayedWrite.notify(sc_core::SC_ZERO_TIME);
         else
           delayedWrite.notify(it->time - currentTime(), SC_NS);
