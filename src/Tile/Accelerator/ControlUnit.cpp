@@ -100,7 +100,8 @@ void ControlUnit::notifyFinished() {
     next_trigger(parent().finishedComputationEvent());
   else {
     LOKI_LOG(1) << this->name() << " finished computation" << endl;
-  //  cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
+    if (ACCELERATOR_TRACE)
+      cout << parent().name() << " took " << Instrumentation::currentCycle() - startTime << " cycles" << endl;
 
     loki_assert(coreNotification.canWrite());
 

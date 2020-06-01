@@ -65,6 +65,9 @@ int ENERGY_TRACE = 0;
 // The format should be the same as csim's trace.
 int CSIM_TRACE = 0;
 
+// Output high-level information about the accelerators, e.g. execution times.
+int ACCELERATOR_TRACE = 0;
+
 // Number of bytes in a Loki word.
 int BYTES_PER_WORD = 4;
 

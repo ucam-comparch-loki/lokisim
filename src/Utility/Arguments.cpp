@@ -104,6 +104,9 @@ void Arguments::parse(int argc, char* argv[]) {
       i++;  // Have used two arguments in this iteration.
       Instrumentation::Stalls::startDetailedLog(stallsTraceFile_);
     }
+    else if (argument == "-acceleratortrace") {
+      ACCELERATOR_TRACE = 1;
+    }
     else if (argument == "-callgrind") {
       callgrindTraceFile_ = string(argv[i+1]);
       i++;  // Have used two arguments in this iteration.
@@ -302,6 +305,7 @@ void Arguments::printHelp() {
     "  -ipkstats <file>\n\tDump the number of times each instruction packet was executed\n"
     "  -insttrace\n\tPrint the text form of each instruction executed to stdout\n"
     "  -instaddrtrace\n\tPrint the address of each instruction executed to stdout\n"
+    "  -acceleratortrace\n\tPrint accelerator timing information to stdout\n"
     "  -Wwarning=value\n\tSwitch on/off a named warning\n"
     "  --parameter=value\n\tSet a named parameter to a particular value. List parameters using\n\t`--list-parameters`.\n"
     "  --help\n\tDisplay this information and exit\n"

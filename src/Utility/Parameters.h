@@ -35,6 +35,9 @@ extern int      CORE_TRACE;
 // Count all events which are significant for energy consumption.
 extern int      ENERGY_TRACE;
 
+// Output high-level information about the accelerators, e.g. execution times.
+extern int      ACCELERATOR_TRACE;
+
 // Number of bytes in a Loki word.
 extern int      BYTES_PER_WORD;
 
