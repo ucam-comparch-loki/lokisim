@@ -335,6 +335,7 @@ void DecodedInst::init() {
   result_           = 0;
   portClaim_        = false;
   persistent_       = false;
+  forRemoteExecution_ = false;
   endOfPacket_      = true;                 // non-zero
   networkInfo       = 0;
   location_         = 0;
