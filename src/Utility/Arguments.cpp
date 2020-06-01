@@ -130,6 +130,9 @@ void Arguments::parse(int argc, char* argv[]) {
     else if (argument == "-vvv") {
       DEBUG = 3;
     }
+    else if (argument == "-vvvv") {
+      DEBUG = 4;
+    }
     else if (argument.substr(0, 2) == "-W") {
       setWarning(argument.substr(2));
     }
