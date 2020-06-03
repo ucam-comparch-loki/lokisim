@@ -123,8 +123,6 @@ GETTER_SETTER(MemoryBankOutputFIFOSize, tile.memory.outputFIFO.size);
 GETTER_SETTER(RouterFIFOSize,           router.fifo.size);
 GETTER_SETTER(AcceleratorPERows,        tile.accelerator.numPEs.height);
 GETTER_SETTER(AcceleratorPEColumns,     tile.accelerator.numPEs.width);
-GETTER_SETTER(AcceleratorBroadcastRow,  tile.accelerator.broadcastRows);
-GETTER_SETTER(AcceleratorBroadcastCol,  tile.accelerator.broadcastCols);
 GETTER_SETTER(AcceleratorAccumulateRow, tile.accelerator.accumulateRows);
 GETTER_SETTER(AcceleratorAccumulateCol, tile.accelerator.accumulateCols);
 GETTER_SETTER(AcceleratorPELatency,     tile.accelerator.latency);
@@ -292,16 +290,6 @@ void initialiseParameters() {
   abbreviations["accelerator-pe-cols"] = "accelerator-pe-columns";
   abbreviations["acc-pe-columns"] = "accelerator-pe-columns";
   abbreviations["acc-pe-cols"] = "accelerator-pe-columns";
-  
-  addParameter("accelerator-broadcast-rows", "Accelerator broadcast rows",
-               "Broadcast input 1's data along each row of PEs in each accelerator",
-               getAcceleratorBroadcastRow, setAcceleratorBroadcastRow, 0);
-  abbreviations["acc-broadcast-rows"] = "accelerator-broadcast-rows";
-  
-  addParameter("accelerator-broadcast-columns", "Accelerator broadcast columns",
-               "Broadcast input 2's data along each column of PEs in each accelerator",
-               getAcceleratorBroadcastCol, setAcceleratorBroadcastCol, 0);
-  abbreviations["acc-broadcast-cols"] = "accelerator-broadcast-cols";
 
   addParameter("accelerator-accumulate-rows", "Accelerator accumulate rows",
                "Accumulate results within each row of PEs in each accelerator",
@@ -381,7 +369,7 @@ size_t memory_bank_parameters_t::log2CacheLineSize() const {
 size2d_t accelerator_parameters_t::dma1Ports() const {
   size2d_t size;
   size.height = numPEs.height;
-  size.width = broadcastRows ? 1 : numPEs.width;
+  size.width = numPEs.width;
 
   return size;
 }
@@ -389,7 +377,7 @@ size2d_t accelerator_parameters_t::dma1Ports() const {
 size2d_t accelerator_parameters_t::dma2Ports() const {
   size2d_t size;
   size.width = numPEs.width;
-  size.height = broadcastCols ? 1 : numPEs.height;
+  size.height = numPEs.height;
 
   return size;
 }

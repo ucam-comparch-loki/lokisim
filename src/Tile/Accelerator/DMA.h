@@ -326,15 +326,20 @@ private:
 
       loki_assert(command.rowLength > 0);
       loki_assert(command.colLength > 0);
-      LOKI_LOG(2) << this->name() << " loading " << command.rowLength
-          << " columns x " << command.colLength << " rows" << endl;
+
+      // Broadcast if stride = 0.
+      uint rows = (command.colStride == 0) ? 1 : command.colLength;
+      uint cols = (command.rowStride == 0) ? 1 : command.rowLength;
+
+      LOKI_LOG(2) << this->name() << " loading " << cols << " columns x "
+                  << rows << " rows" << endl;
 
       // TODO Make this a parameter.
       MemoryOpcode memoryOp = LOAD_W;
 
       // Generate requests for all required values.
-      for (uint col=0; col<command.rowLength; col++) {
-        for (uint row=0; row<command.colLength; row++) {
+      for (uint col=0; col<cols; col++) {
+        for (uint row=0; row<rows; row++) {
           MemoryAddr addr = command.baseAddress + col*command.rowStride + row*command.colStride;
           position_t position; position.row = row; position.column = col;
           this->memoryAccess(command.time, position, addr, memoryOp);
@@ -369,8 +374,7 @@ private:
     }
 
     response_t response = ifc.getResponse();
-    oDataToPEs->write(response.position.row, response.position.column,
-                      static_cast<T>(response.data));
+    sendToPEs(response.position, static_cast<T>(response.data));
 
     // Notify consumers when the last data has been received.
     loki_assert(outstandingResponses > 0);
@@ -382,6 +386,35 @@ private:
     // if there is one.
     if (ifc.canGiveResponse())
       next_trigger(sc_core::SC_ZERO_TIME);
+  }
+
+  void sendToPEs(position_t position, T data) {
+    if (broadcastAlongRows && broadcastAlongColumns) {
+      loki_assert(position.column == 0);
+      loki_assert(position.row == 0);
+
+      dma_command_t command = inFlight.front();
+      for (uint row=0; row<command.colLength; row++)
+        for (uint col=0; col<command.rowLength; col++)
+          oDataToPEs->write(row, col, data);
+    }
+    else if (broadcastAlongRows) {
+      loki_assert(position.column == 0);
+
+      dma_command_t command = inFlight.front();
+      for (uint col=0; col<command.rowLength; col++)
+        oDataToPEs->write(position.row, col, data);
+    }
+    else if (broadcastAlongColumns) {
+      loki_assert(position.row == 0);
+
+      dma_command_t command = inFlight.front();
+      for (uint row=0; row<command.colLength; row++)
+        oDataToPEs->write(row, position.column, data);
+    }
+    else {
+      oDataToPEs->write(position.row, position.column, data);
+    }
   }
 
   void finaliseOutput() {
@@ -416,7 +449,12 @@ private:
 
     dma_command_t command = inFlight.front();
     this->currentTick = command.time;
-    outstandingResponses = command.colLength * command.rowLength;
+    broadcastAlongRows = command.rowStride == 0;
+    broadcastAlongColumns = command.colStride == 0;
+
+    uint rows = broadcastAlongColumns ? 1 : command.colLength;
+    uint cols = broadcastAlongRows ? 1 : command.rowLength;
+    outstandingResponses = rows * cols;
 
     // Default trigger: oDataToPEs is ready for new data.
   }
@@ -432,6 +470,8 @@ private:
 
   // Details about the data currently being sent to PEs.
   uint outstandingResponses;
+  bool broadcastAlongRows;
+  bool broadcastAlongColumns;
 
 };
 

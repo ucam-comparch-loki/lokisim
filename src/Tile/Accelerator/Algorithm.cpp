@@ -201,26 +201,6 @@ void Algorithm::checkLoops(const vector<loop_t>& loops) {
   const loop_t& rowLoop = loops[loops.size()-2]; // Iterates along a row of PEs
   const loop_t& colLoop = loops[loops.size()-1]; // Iterates along a column of PEs
 
-  // If an input is broadcast, the loop parallelised along that dimension should
-  // treat that input as constant (i.e. stride = 0).
-  if (config.broadcastRows && rowLoop.in1Skip != 0) {
-    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
-    LOKI_WARN << "  Unable to broadcast along rows of PEs: using first column only." << endl;
-    LOKI_WARN << "  --acc-broadcast-rows=1 but penultimate loop doesn't treat input 1 as constant." << endl;
-
-    // Set columns to 1.
-    activePEs.width = 1;
-  }
-
-  if (config.broadcastCols && colLoop.in2Skip != 0) {
-    LOKI_WARN << this->name() << " received incompatible computation request." << endl;
-    LOKI_WARN << "  Unable to broadcast along columns of PEs: using first row only." << endl;
-    LOKI_WARN << "  --acc-broadcast-cols=1 but final loop doesn't treat input 2 as constant." << endl;
-
-    // Set rows to 1.
-    activePEs.height = 1;
-  }
-
   // If the output is accumulated, the loop parallelised in that dimension
   // should treat the output as constant (i.e. stride = 0).
   if (config.accumulateRows && rowLoop.outSkip != 0) {

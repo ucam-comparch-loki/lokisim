@@ -110,8 +110,6 @@ typedef struct {
   size2d_t numPEs;
 
   // TODO: infer these based on the given loop order?
-  bool broadcastRows;
-  bool broadcastCols;
   bool accumulateRows;
   bool accumulateCols;
 

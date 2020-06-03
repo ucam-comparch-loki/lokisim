@@ -26,8 +26,6 @@ Accelerator::Accelerator(sc_module_name name, ComponentID id, uint numMemoryBank
     toPEs2(params.dma2Ports()),
     fromPEs(params.dma3Ports()) {
 
-  checkParameters(params);
-
   control.clock(clock);
   iMulticast[0](control.iParameter);
   oMulticast(control.oCores);
@@ -80,17 +78,6 @@ bool Accelerator::isIdle() const {
   // I think this is okay because the output requests are queued up well in
   // advance.
   return in1.isIdle() && in2.isIdle() && out.isIdle();
-}
-
-void Accelerator::checkParameters(const accelerator_parameters_t& params) {
-	// It doesn't make sense to broadcast and accumulate along the same dimension.
-	// This is equivalent to multiplying the single result by whatever value was
-	// broadcast.
-	// i.e. a*X + b*X + c*X + d*X = (a+b+c+d)*X, so why do so many multiplies?
-	if ((params.broadcastCols && params.accumulateCols) ||
-			(params.broadcastRows && params.accumulateRows))
-		LOKI_WARN << this->name() << " configured to broadcast and accumulate on same dimension.\n"
-		    "It would make more sense to multiply the final result by the broadcasted value." << endl;
 }
 
 const sc_event& Accelerator::finishedComputationEvent() const {
