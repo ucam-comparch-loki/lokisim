@@ -307,14 +307,21 @@ private:
 
 private:
 
+  bool canStartCommand(dma_command_t command) {
+    // Count how far ahead of the current tick we are.
+    int prefetchDistance = command.time - this->currentTick;
+
+    // Limit how many ticks ahead we prefetch.
+    // Might prefer to measure this in individual memory requests?
+    return prefetchDistance <= 4;
+  }
+
   // Convert commands into memory requests.
   void executeCommand() {
     if (this->commandQueue.empty())
       return;
 
-    // For the moment, we only work on one command at a time. In the future we
-    // might prefer to buffer multiple sets of data.
-    if (oDataToPEs->canWrite()) {
+    if (canStartCommand(this->commandQueue.peek())) {
       dma_command_t command = this->commandQueue.dequeue();
 
       loki_assert(command.rowLength > 0);

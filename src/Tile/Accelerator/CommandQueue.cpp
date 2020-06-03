@@ -20,6 +20,13 @@ void CommandQueue::enqueue(const dma_command_t command) {
   queueChanged.notify(sc_core::SC_ZERO_TIME);
 }
 
+const dma_command_t CommandQueue::peek() {
+  assert(!empty());
+
+  const dma_command_t result = queue.front();
+  return result;
+}
+
 const dma_command_t CommandQueue::dequeue() {
   assert(!empty());
 

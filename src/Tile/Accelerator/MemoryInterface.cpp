@@ -19,7 +19,7 @@ MemoryInterface::MemoryInterface(sc_module_name name, ComponentIndex memory) :
     oRequest("oRequest"),
     iResponse("iResponse"),
     memory(memory),
-    requestBuffer("requestBuf", 100, 100),   // "Infinite" capacity
+    requestBuffer("requestBuf", 100, 100), // "Infinite" capacity
     responseBuffer("responseBuf", 8, 100) { // TODO: bandwidth
 
   requestBuffer.clock(clock);
@@ -145,19 +145,24 @@ void MemoryInterface::reportStalls(ostream& os) {
 void MemoryInterface::sendRequest() {
   loki_assert(!requests.empty());
 
-  request_t request = requests.front();
-  requests.pop();
+  if (!requestBuffer.canWrite()) {
+    next_trigger(requestBuffer.canWriteEvent());
+    return;
+  }
 
-  if (request.operation != PAYLOAD && request.operation != PAYLOAD_EOP)
-    LOKI_LOG(2) << this->name() << ": accessing " << LOKI_HEX(request.address) << " for PE " << request.position << ", tick " << request.tick << endl;
+  request_t request = requests.front();
+  // Pop from queue right at the end.
 
   // The network address of the memory to access.
   ChannelID memoryBank(id().tile, memory + CORES_PER_TILE, parent().memoryMapping.channel);
 
-  // TODO: only do this if we expect a response.
-  inFlight.push(request);
-
   if (MAGIC_MEMORY) {
+    // Response is immediate and bypasses flow control, so add extra check.
+    if (!responseBuffer.canWrite()) {
+      next_trigger(responseBuffer.canWriteEvent());
+      return;
+    }
+
     ChannelID returnChannel(id(), memory);
     parent().magicMemoryAccess(request.operation, request.address,
                                returnChannel, request.data);
@@ -185,6 +190,15 @@ void MemoryInterface::sendRequest() {
   }
 //  if (request.operation == LOAD_AND_ADD)
 //    cout << this->name() << " sending " << (int)request.data << " to " << LOKI_HEX(request.address) << endl;
+
+  if (request.operation != PAYLOAD && request.operation != PAYLOAD_EOP)
+    LOKI_LOG(2) << this->name() << ": accessing " << LOKI_HEX(request.address)
+        << " for PE " << request.position << ", tick " << request.tick << endl;
+
+  // TODO: only do this if we expect a response.
+  inFlight.push(request);
+
+  requests.pop();
 
   if (!requests.empty())
     next_trigger(sc_core::SC_ZERO_TIME);

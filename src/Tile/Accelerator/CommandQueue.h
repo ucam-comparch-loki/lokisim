@@ -21,6 +21,7 @@ public:
   CommandQueue(size_t maxLength);
 
   void enqueue(const dma_command_t command);
+  const dma_command_t peek();
   const dma_command_t dequeue();
 
   bool full() const;
