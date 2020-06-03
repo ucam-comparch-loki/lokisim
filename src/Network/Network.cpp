@@ -72,17 +72,18 @@ void Network<T>::sendData(PortIndex output) {
     next_trigger(outputs[output]->canWriteEvent());
   }
   else if (requests[output].empty()) {
-    next_trigger(requests[output].newRequestEvent());
+    // Default trigger: new request arrives
   }
   else {
     request_list_t& req = requests[output];
 
     PortIndex granted = arbiters[output].arbitrate(req);
 
-    // Exit early if the selected input has no data available. This can happen
-    // when in wormhole routing mode.
-    if (!inputs[granted]->canRead()) {
-      next_trigger(inputs[granted]->canReadEvent());
+    // Exit early if the selected input hasn't made a request yet.
+    // This can happen when in wormhole routing mode, as the output is held
+    // until the selected input sends a whole packet.
+    if (!req.contains(granted)) {
+      // Default trigger: new request arrives
       return;
     }
 
@@ -111,7 +112,7 @@ void Network<T>::sendData(PortIndex output) {
 
 template<typename T>
 Flit<T> Network<T>::readData(PortIndex input) {
-  loki_assert(copiesRemaining[input] > 0);
+  loki_assert_with_message(copiesRemaining[input] > 0, "input = %d", input);
   copiesRemaining[input]--;
 
   // Only consume the input if it is the final copy of a multicast message.
@@ -123,7 +124,7 @@ Flit<T> Network<T>::readData(PortIndex input) {
 
 template<typename T>
 void Network<T>::newData(PortIndex input) {
-  loki_assert(inputs[input]->canRead());
+  loki_assert_with_message(inputs[input]->canRead(), "input = %d", input);
 
   if (ENERGY_TRACE)
     Instrumentation::Network::crossbarInput(inputs[input]->lastDataRead(),
@@ -134,7 +135,7 @@ void Network<T>::newData(PortIndex input) {
 
 template<typename T>
 void Network<T>::updateRequests(PortIndex input) {
-  loki_assert(inputs[input]->canRead());
+  loki_assert_with_message(inputs[input]->canRead(), "input = %d", input);
 
   Flit<T> flit = inputs[input]->peek();
   set<PortIndex> targets = getDestinations(flit.channelID());

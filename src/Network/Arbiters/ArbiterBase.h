@@ -77,6 +77,14 @@ public:
     return requests.empty();
   }
 
+  bool contains(PortIndex input) const {
+    for (auto it=requests.begin(); it != requests.end(); ++it)
+      if (*it == input)
+        return true;
+
+    return false;
+  }
+
   const sc_event& newRequestEvent() const {
     return newRequest;
   }
