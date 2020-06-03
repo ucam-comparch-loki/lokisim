@@ -19,7 +19,7 @@ MemoryInterface::MemoryInterface(sc_module_name name, ComponentIndex memory) :
     oRequest("oRequest"),
     iResponse("iResponse"),
     memory(memory),
-    requestBuffer("requestBuf", 100, 100), // "Infinite" capacity
+    requestBuffer("requestBuf", 1000, 100), // "Infinite" capacity
     responseBuffer("responseBuf", 8, 100) { // TODO: bandwidth
 
   requestBuffer.clock(clock);
